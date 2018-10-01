@@ -19,8 +19,8 @@ class Species:
             self.noElectrons = speciesProperties['noElectrons']
             self.Io = speciesProperties['Io'] * self.constants.eVToCm_1
             self.cores = []
-            for _, core in speciesProperties['cores'].items():
-                self.cores.append(core)
+            for core in speciesProperties['cores'].items():
+                self.cores.append(core[1])
     
 
 #He = Species('He')

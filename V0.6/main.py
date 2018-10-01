@@ -12,7 +12,7 @@ constants = util.Constants()
 
 nMax = 5
 
-speciesList = ['O', 'F+']
+speciesList = ['O', 'O+', 'F+']
 
 allSpecies = []
 for speciesStr in speciesList:

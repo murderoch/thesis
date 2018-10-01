@@ -53,18 +53,20 @@ def importFromFile(species):
                 if '/' in j:
                     j = float(j.split('/')[0])/float(j.split('/')[1])
                     j = str(j)
-
-                if not row[0].isalpha(): 
-                    if j.strip() and level != '':
-                        writeFile.write(config + ', ')
-                        writeFile.write(term + ', ')
-                        writeFile.write(j + ', ')
-                        writeFile.write(level + '\n')
+                
+                #### Hack ADD IN ENTRIES FOR LK COUPLING #######
+                if '[' not in term:
+                    if not row[0].isalpha(): 
+                        if j.strip() and level != '':
+                            writeFile.write(config + ', ')
+                            writeFile.write(term + ', ')
+                            writeFile.write(j + ', ')
+                            writeFile.write(level + '\n')
+                        else:
+                            writeFile.write('\n')
                     else:
-                        writeFile.write('\n')
-                else:
-                    writeFile.write('Limit, ' + level)
-                    break 
+                        writeFile.write('Limit, ' + level)
+                        break 
                     
                 oldConfig = config
                 oldTerm = term

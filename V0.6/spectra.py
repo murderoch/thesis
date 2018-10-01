@@ -1,5 +1,6 @@
-#import operator
 from math import sqrt
+from itertools import repeat, product, combinations
+from collections import Counter
 
 import util
 import species
@@ -13,19 +14,29 @@ class Configuration:
         self.term = term
 
         if self.excitedState:
+            coreS = self.term.S - 0.5
+            coreL = self.term.L - self.excitedState.L
+        else:
+            coreS = self.term.S
+            coreL = self.term.L
+        coreN = self.core.maxN
+        self.coreTerm = Term(coreL, coreS, coreN)
+
+        if self.excitedState:
             self.ID = self.core.atomicNotation + '.' + self.excitedState.subShell.getSubShellString() + '--' + term.getTermString()
         else:
             self.ID = self.core.atomicNotation + '--' + term.getTermString()
 
+        
 class Core:
-    def __init__(self, configuration):
-        self.configuration = configuration
+    def __init__(self, subShells):
+        self.subShells = subShells
         self.noElectrons = 0    
         self.atomicNotation = ''
         self.maxN = 0
         self.maxL = 0
 
-        for subShell in configuration:
+        for subShell in subShells:
             self.noElectrons += subShell.noElectrons
             self.atomicNotation = self.atomicNotation + '.' + subShell.getSubShellString()
             if subShell.n > self.maxN:
@@ -36,11 +47,16 @@ class Core:
         self.atomicNotation = self.atomicNotation[1:]
 
         self.maxS = self.getSMax()
+
+        self.terms = []
+        for subShell in self.subShells:
+            maxElectrons = 2.*(subShell.L * 2. + 1.)
+            if subShell.noElectrons < maxElectrons:
+                self.terms += getTerms(subShell.L, subShell.noElectrons)
     
     def getSMax(self):
         Ms = 0
-        for subShell in self.configuration:
-            n = subShell.n
+        for subShell in self.subShells:
             L = subShell.L
             noElectrons = subShell.noElectrons
             maxElec = 4 * L + 2
@@ -62,6 +78,7 @@ class SubShell:
 
     def getSubShellString(self):
         return str(self.n) + str(util.subShellMap[self.L]) + str(self.noElectrons)
+
 
 class ExcitedState:
     def __init__(self, subShell):
@@ -122,6 +139,12 @@ class CalcEnergy:
             speciesObj = ionSpecies[0]
             if speciesObj.noElectrons == self.species.noElectrons and speciesObj.name != self.species.name:
                 self.ions.append(ionSpecies)
+        
+        for ionSpecies in self.allSpecies:
+            speciesObj = ionSpecies[0]
+            if speciesObj.atomicNumber == self.species.atomicNumber and speciesObj.noElectrons == self.species.noElectrons - 1:
+                self.speciesIon = ionSpecies
+                break
 
     def populateTheory(self):        
         allLevels = self.theory
@@ -144,7 +167,6 @@ class CalcEnergy:
                         level.setEnergy(energy)
             else:
                 for level in config.term.levels:
-                    #print(config.ID)
                     energy = self.getEnergy(config, level)
                     level.setEnergy(energy)
 
@@ -170,6 +192,11 @@ class CalcEnergy:
             energy = self.hydrogenicApprox(configuration.term.n)
         else:
             energy = self.ritzRydberg(configuration, level, ionNISTLevels, configuration.term.n)
+            
+            if energy == None:
+                energy = self.hydrogenicApprox(configuration.term.n)
+
+        #print(configuration.ID, energy)
 
         return energy
 
@@ -183,14 +210,36 @@ class CalcEnergy:
 
     def ritzRydberg(self, configuration, level, ionNISTLevels, n):
         IH = self.constants.IH
-        I = configuration.core.energy
         z = self.species.charge
-        print(I)
-        A, B = self.getCoefficients(ionNISTLevels)
-        energy = I - IH*(z + 1.)**2. / (n + A + B/n**2.)**2.
-        #print(energy)
 
-        return energy
+        #print('\n', configuration.ID)
+
+        def getCoreEnergy(configuration, ionNISTLevels):
+            for ionConfig in self.speciesIon[1]:
+                #print(ionConfig.ID.split('--')[0], ionConfig.term.getTermString())
+                if ionConfig.ID.split('--')[0] == configuration.core.atomicNotation:
+                    #print('matched config is', ionConfig.ID, configuration.core.atomicNotation, configuration.coreTerm.getTermString())
+                    #print('check term is', ionConfig.term.getTerm(), configuration.coreTerm.getTerm())
+                    if ionConfig.term.getTerm() == configuration.coreTerm.getTerm():
+                        #print('matched term is ', ionConfig.ID)
+                        for ionLevel in ionConfig.term.levels:
+                            #print('level is', ionLevel.J, 'want', configuration.coreTerm.J)
+                            if ionLevel.J in configuration.coreTerm.J:
+                                #print('matched level is', ionConfig.ID, configuration.coreTerm.J)
+                                #print('matched config is', ionConfig.ID, configuration.core.atomicNotation, configuration.coreTerm.getTermString())
+                                
+                                coreEnergy = ionLevel.energy
+                                return coreEnergy
+            return None
+
+        I = getCoreEnergy(configuration, ionNISTLevels)
+
+        if I is None:
+            return None
+        else:
+            A, B = self.getCoefficients(ionNISTLevels)
+            energy = I - IH*(z + 1.)**2. / (n + A + B/n**2.)**2.
+            return energy
 
     def getCoefficients(self, ionNISTLevels):
         if len(ionNISTLevels) == 1:
@@ -198,7 +247,7 @@ class CalcEnergy:
             speciesNISTLevel = ionNISTLevels[0][1]
             speciesNISTConfig = ionNISTLevels[0][2]
 
-            print(self.constants.IH, speciesObj.Io)
+            #print(self.constants.IH, speciesObj.Io)
 
             B = 0
             A = sqrt(self.constants.IH * (speciesObj.charge + 1.)**2. / (speciesObj.Io - speciesNISTLevel.energy)) - speciesNISTConfig.term.n
@@ -206,7 +255,7 @@ class CalcEnergy:
             A = 0
             B = 0
         
-        print(A, B)
+        #print(A, B)
         return A, B
 
 
@@ -315,27 +364,24 @@ def calculateExpectedStates(species, nMax):
     cores = []
     for core in species.cores:
         coreShells = []
-        for subShell in core[0]:
+        for subShell in core:
             coreShells.append(SubShell(subShell[0], subShell[1], subShell[2]))
         cores.append(Core(coreShells))
-    for core in cores:
 
+    for core in cores:
         if core.noElectrons == species.noElectrons:
             n = core.maxN
-            LArr = range(0, core.maxL+1, 1)
-            SArr = []
+            terms = []
 
-            i = core.maxS
-
-            while i >= 0:
-                SArr.append(i)
-                i = i - 1
-        
-            for L in LArr:
-                for S in SArr:
-                    term = Term(L, S, n)
-                    configuration = Configuration(core, None, term)
-                    states.append(configuration)
+            for subShell in core.subShells:
+                maxElectrons = 2.*(subShell.L * 2. + 1.)
+                if subShell.noElectrons < maxElectrons:
+                    terms += getTerms(subShell.L, subShell.noElectrons)
+            
+            for term in terms:
+                termObj = Term(term[0], term[1], n)
+                configuration = Configuration(core, None, termObj)
+                states.append(configuration)
         
         else:
             for n in range(core.maxN+1, nMax+1, 1):
@@ -351,3 +397,46 @@ def calculateExpectedStates(species, nMax):
                         states.append(configuration)
                         
     return states
+
+def getTerms(L, noElectrons):
+    """Return a list of term symbols for the configuration l^noElectrons."""
+
+    # Total number of (ml, ms) pairs for this subshell.
+    n = (2*L+1)*2
+
+    # All possible values of ml = -l, -l+1, ..., l-1, l.
+    ml = list(range(-L,L+1))
+
+    # All possible values of 2ms = -1, 1. That is, ms = -1/2, +1/2. We work
+    # with 2ms instead of ms so that we can handle integers only.
+    ms2 = [-1,1]
+
+    # All possible (ml, 2ms) pairs for this subshell.
+    ml_ms2 = list(product(ml, ms2))
+
+    # All possible microstates for r electrons in this subshell.
+    microstates = list(combinations(range(n), noElectrons))
+
+    # The totals ML = sum(ml) and MS2 = sum(2ms) for each microstate
+    ML = [sum([ml_ms2[microstate[j]][0] for j in range(noElectrons)]) for microstate in microstates]
+    MS2 = [sum([ml_ms2[microstate[j]][1] for j in range(noElectrons)]) for microstate in microstates]
+
+    # Count the microstates (MS, ML). Store them this way round so we can
+    # pick off the ground state term (maximum S) first.
+    MS2_ML = Counter(zip(MS2,ML))
+    N = len(microstates)
+
+    # Extract the term symbols by starting at the minimum (ML, MS) value and
+    # removing microstates corresponding to the (L, S) term it belongs to.
+    # Repeat until we're out of microstates.
+    terms = []
+    while N>0:
+        S, L = min(MS2_ML)
+        terms.append([-L, -S/2.])
+        for ML in range(L, -L+1):
+            for MS in range(S, -S+1,2):
+                MS2_ML[MS,ML] -= 1
+                if MS2_ML[MS,ML] == 0:
+                    del MS2_ML[MS,ML]
+                N -= 1
+    return terms
