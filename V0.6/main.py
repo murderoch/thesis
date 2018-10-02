@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 constants = util.Constants()
 
-nMax = 5
+nMax = 3
 
 speciesList = ['O', 'O+', 'F+']
 

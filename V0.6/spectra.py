@@ -13,6 +13,7 @@ class Configuration:
         self.excitedState = excitedState
         self.term = term
 
+        '''
         if self.excitedState:
             coreS = self.term.S - 0.5
             coreL = self.term.L - self.excitedState.L
@@ -20,7 +21,15 @@ class Configuration:
             coreS = self.term.S
             coreL = self.term.L
         coreN = self.core.maxN
+
+        coreTerms = []
+        for subShell in self.core.subShells:
+            maxElectrons = 2.*(subShell.L * 2. + 1.)
+            if subShell.noElectrons < maxElectrons:
+                coreTerms += getTerms(subShell.L, subShell.noElectrons)
+
         self.coreTerm = Term(coreL, coreS, coreN)
+        '''
 
         if self.excitedState:
             self.ID = self.core.atomicNotation + '.' + self.excitedState.subShell.getSubShellString() + '--' + term.getTermString()
@@ -29,8 +38,10 @@ class Configuration:
 
         
 class Core:
-    def __init__(self, subShells):
+    def __init__(self, subShells, term):
         self.subShells = subShells
+        self.term = term
+
         self.noElectrons = 0    
         self.atomicNotation = ''
         self.maxN = 0
@@ -47,13 +58,7 @@ class Core:
         self.atomicNotation = self.atomicNotation[1:]
 
         self.maxS = self.getSMax()
-
-        self.terms = []
-        for subShell in self.subShells:
-            maxElectrons = 2.*(subShell.L * 2. + 1.)
-            if subShell.noElectrons < maxElectrons:
-                self.terms += getTerms(subShell.L, subShell.noElectrons)
-    
+   
     def getSMax(self):
         Ms = 0
         for subShell in self.subShells:
@@ -217,25 +222,27 @@ class CalcEnergy:
         def getCoreEnergy(configuration, ionNISTLevels):
             for ionConfig in self.speciesIon[1]:
                 #print(ionConfig.ID.split('--')[0], ionConfig.term.getTermString())
+                '''
                 if ionConfig.ID.split('--')[0] == configuration.core.atomicNotation:
-                    #print('matched config is', ionConfig.ID, configuration.core.atomicNotation, configuration.coreTerm.getTermString())
-                    #print('check term is', ionConfig.term.getTerm(), configuration.coreTerm.getTerm())
-                    if ionConfig.term.getTerm() == configuration.coreTerm.getTerm():
-                        #print('matched term is ', ionConfig.ID)
+                    print('matched config is', ionConfig.ID, configuration.core.atomicNotation, configuration.core.term.getTermString())
+                    print('check term is', ionConfig.term.getTermString(), configuration.core.term.getTermString())
+                    if ionConfig.term.getTerm() == configuration.core.term.getTerm():
+                        print('matched term is ', ionConfig.ID)
                         for ionLevel in ionConfig.term.levels:
-                            #print('level is', ionLevel.J, 'want', configuration.coreTerm.J)
-                            if ionLevel.J in configuration.coreTerm.J:
-                                #print('matched level is', ionConfig.ID, configuration.coreTerm.J)
+                            print('level is', ionLevel.J, 'want', configuration.core.term.J)
+                            if ionLevel.J in configuration.core.term.J:
+                                print('matched level is', ionConfig.ID, configuration.core.term.J, 'with energy', ionLevel.energy)
                                 #print('matched config is', ionConfig.ID, configuration.core.atomicNotation, configuration.coreTerm.getTermString())
                                 
                                 coreEnergy = ionLevel.energy
                                 return coreEnergy
-            return None
+                '''
+            return 0
 
         I = getCoreEnergy(configuration, ionNISTLevels)
 
-        if I is None:
-            return None
+        if I == 0:
+            return self.hydrogenicApprox(n)
         else:
             A, B = self.getCoefficients(ionNISTLevels)
             energy = I - IH*(z + 1.)**2. / (n + A + B/n**2.)**2.
@@ -307,14 +314,34 @@ def readNISTSpectra(species):
     def readConfiguration(inputStr):
         configs = inputStr.split('.')
         coreShells = [SubShell(1, 0, 2)]
-        for config in configs[:-1]: 
-            n, L, noElectrons = formatConfig(config)
-            coreShells.append(SubShell(n, L, noElectrons))
+        #coreTerms = []
+        #cores = []
+        _, _, finalSubShellNoElectrons = formatConfig(configs[-1])
 
-        core = Core(coreShells)
-        n, L, noElectrons = formatConfig(configs[-1])
-        excitedShell = SubShell(n, L, noElectrons)
-        excitedState = ExcitedState(excitedShell)
+
+        if finalSubShellNoElectrons == 1:
+            for config in configs[:-1]: 
+                n, L, noElectrons = formatConfig(config)
+                coreShells.append(SubShell(n, L, noElectrons))
+                '''
+                maxElectrons = 2.*(L * 2. + 1.)
+                if noElectrons < maxElectrons:
+                    coreSLs = getTerms(L, noElectrons)
+                    for coreSL in coreSLs:
+                        termObj = Term(coreSL[0], coreSL[1], n)
+                        cores.append(Core(coreShells, termObj))
+                '''
+            core = Core(coreShells, None)
+            n, L, noElectrons = formatConfig(configs[-1])
+            excitedShell = SubShell(n, L, noElectrons)
+            excitedState = ExcitedState(excitedShell)
+
+        else:
+            for config in configs:
+                n, L, noElectrons = formatConfig(config)
+                coreShells.append(SubShell(n, L, noElectrons))
+                core = Core(coreShells, None)
+                excitedState = None
 
         return core, excitedState
 
@@ -341,10 +368,47 @@ def readNISTSpectra(species):
 
             values = row.rstrip('\n').split(', ')
             core, excitedState = readConfiguration(values[0])
-            n = excitedState.subShell.n
-
             L, S = readTerm(values[1])
+
+            if excitedState:
+                n = excitedState.subShell.n
+                coreS = [S - 0.5, S + 0.5]
+                coreL = clebschGordon(L, excitedState.L)
+
+                subShellTerms = []
+                for subShell in core.subShells:
+                    if subShell.noElectrons != (4. * subShell.L + 2.):
+                        subShellTerms.append(getTerms(subShell.L, subShell.noElectrons))
+                
+                old = [[0, 0]]
+                for subShell in subShellTerms:
+                    #LArr = [x[0] for x in subShell]
+                    #SArr = [x[1] for x in subShell]
+                    
+                    for subShellTerm in subShell:
+                        for oldSubShellTerm in old:
+                            print(oldSubShellTerm, subShellTerm)
+                            newLArr = clebschGordon(oldSubShellTerm[0], subShellTerm[0])
+                            for newL in newLArr:
+                                print(newL)
+                                if [newL, 0] not in old:
+                                    old.append([newL, 0])
+                            
+                        #Larr = clebschGordon(subShell.L, Larr)
+
+                asdf = core.asdf
+
+                coreN = core.maxN
+                core.term = Term(coreL, coreS, coreN)
+            else:
+                n = core.maxN
+                core.term = Term(L, S, n)
+            
+
+
             term = Term(L, S, n)
+            if excitedState:
+                print(excitedState.subShell.getSubShellString(), term.getTermString(), 'core - ', core.atomicNotation, core.term.getTermString())
             configuration = Configuration(core, excitedState, term)
             if configuration.ID not in IDs:
                 IDs.append(configuration.ID)
@@ -364,24 +428,29 @@ def calculateExpectedStates(species, nMax):
     cores = []
     for core in species.cores:
         coreShells = []
+
         for subShell in core:
-            coreShells.append(SubShell(subShell[0], subShell[1], subShell[2]))
-        cores.append(Core(coreShells))
+            
+            n = subShell[0]
+            L = subShell[1]
+            noElectrons = subShell[2]
+
+            coreShells.append(SubShell(n, L, noElectrons))
+
+            maxElectrons = 2.*(L * 2. + 1.)
+            if noElectrons < maxElectrons:
+                coreSLs = getTerms(L, noElectrons)
+                for coreSL in coreSLs:
+                    termObj = Term(coreSL[0], coreSL[1], n)
+                    cores.append(Core(coreShells, termObj))
 
     for core in cores:
         if core.noElectrons == species.noElectrons:
             n = core.maxN
-            terms = []
 
-            for subShell in core.subShells:
-                maxElectrons = 2.*(subShell.L * 2. + 1.)
-                if subShell.noElectrons < maxElectrons:
-                    terms += getTerms(subShell.L, subShell.noElectrons)
-            
-            for term in terms:
-                termObj = Term(term[0], term[1], n)
-                configuration = Configuration(core, None, termObj)
-                states.append(configuration)
+            termObj = core.term
+            configuration = Configuration(core, None, termObj)
+            states.append(configuration)
         
         else:
             for n in range(core.maxN+1, nMax+1, 1):
