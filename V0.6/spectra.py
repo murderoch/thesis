@@ -375,31 +375,67 @@ def readNISTSpectra(species):
                 coreS = [S - 0.5, S + 0.5]
                 coreL = clebschGordon(L, excitedState.L)
 
+                print(core.atomicNotation, excitedState.subShell.getSubShellString(), coreS, coreL)
+
                 subShellTerms = []
                 for subShell in core.subShells:
                     if subShell.noElectrons != (4. * subShell.L + 2.):
                         subShellTerms.append(getTerms(subShell.L, subShell.noElectrons))
                 
-                old = [[0, 0]]
+                print(subShellTerms)
+                coreShellTerms = subShellTerms[0]   #Will need to change this to combine multiple shells
+                for L in coreL:
+                    for S in coreS:
+                        print([L, S])
+                        if [L, S] in coreShellTerms:
+                            print('matched ', [L, S])
+
+                            matchedL = L
+                            matchedS = S
+                            break
+
+
+
+                
+                '''
+                combinedTerms = [[0], [0]]
                 for subShell in subShellTerms:
-                    #LArr = [x[0] for x in subShell]
-                    #SArr = [x[1] for x in subShell]
+                    LArr = [x[0] for x in subShell]
+                    SArr = [x[1] for x in subShell]
+
+                    maxL = max([x + y for x in LArr for y in combinedTerms[0]])
+                    minL = min([abs(x - y) for x in LArr for y in combinedTerms[0]])
+
+                    maxS = max([x + y for x in SArr for y in combinedTerms[1]])
+                    minS = min([abs(x - y) for x in SArr for y in combinedTerms[1]])
                     
-                    for subShellTerm in subShell:
-                        for oldSubShellTerm in old:
-                            print(oldSubShellTerm, subShellTerm)
-                            newLArr = clebschGordon(oldSubShellTerm[0], subShellTerm[0])
-                            for newL in newLArr:
-                                print(newL)
-                                if [newL, 0] not in old:
-                                    old.append([newL, 0])
-                            
-                        #Larr = clebschGordon(subShell.L, Larr)
+                    def fRange(x, y):
+                        while x <= y:
+                            yield x
+                            x += 1.
 
-                asdf = core.asdf
+                    if minL != maxL:
+                        combinedTerms[0] = list(fRange(minL, maxL))
+                    else:
+                        combinedTerms[0] = list(minS)
 
+                    if minS != maxS:
+                        combinedTerms[1] = list(fRange(minS, maxS))
+                    else:
+                        combinedTerms[0] = list(minS)
+
+                print(combinedTerms)
+                
+                for L in coreL:
+                    for S in coreS:
+                        print([L, S])
+                        if L in combinedTerms[0] and S in combinedTerms[1]:
+                            print('matched', [L, S])
+                            break
+                    
+                '''
                 coreN = core.maxN
-                core.term = Term(coreL, coreS, coreN)
+                core.term = Term(matchedL, matchedS, coreN)
             else:
                 n = core.maxN
                 core.term = Term(L, S, n)
@@ -509,3 +545,8 @@ def getTerms(L, noElectrons):
                     del MS2_ML[MS,ML]
                 N -= 1
     return terms
+
+
+if __name__ == '__main__':
+    O = species.Species('O')
+    NIST = readNISTSpectra(O)
