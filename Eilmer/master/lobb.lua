@@ -19,32 +19,27 @@ print(config.title)
 
 -- This script file acts as a template. It will be configured by a "case.lua" file.
 dofile('case.lua')
-
+dofile('inf-prop.lua')
 
 njb = 4
 Db = 0.5 * 0.0254 -- diameter (in m) of ball bearing
 Rc = Db/2
 
 T_inf = 293.0 -- K
-
-nsp, nmodes, Q = setGasModel('air-5sp.lua')
-
--- p_inf = 666.0 -- Pa (=5 Torr)
---u_inf = 4825.0 -- m/s
---rR = 1e-5
-
-dofile('infProp.lua')
-
 rho_inf = rR/Rc
+
+
+nsp, nmodes, gmodel = setGasModel('air-5sp.lua')
+
+Q = GasState:new{gmodel}
 
 Q.rho = rho_inf
 Q.T = T_inf
-Q.massf = {O2 = 0.22, N2 = 0.78}
+Q.massf = {O2=0.22, N2=0.78}
+
+gmodel:updateThermoFromRHOT(Q)
 
 p_inf = Q.p
-
-
-
 
 inflow = FlowState:new{p=p_inf, T=T_inf, velx=u_inf, massf={N2=0.78,O2=0.22}}
 
@@ -119,4 +114,5 @@ blk = FluidBlockArray{grid=grid, initialState=initial, label='blk',
 			      north=OutFlowBC_Simple:new{}},
 		      nib=1, njb=njb}
 print "Done constructing block."
+
 

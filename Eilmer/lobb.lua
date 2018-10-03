@@ -19,23 +19,24 @@ print(config.title)
 
 -- This script file acts as a template. It will be configured by a "case.lua" file.
 dofile('case.lua')
-
+dofile('inf-prop.lua')
 
 njb = 4
 Db = 0.5 * 0.0254 -- diameter (in m) of ball bearing
 Rc = Db/2
 
 T_inf = 293.0 -- K
-
-nsp, nmodes, Q = setGasModel('air-5sp.lua')
-
-dofile('infProp.lua')
-
 rho_inf = rR/Rc
+
+nsp, nmodes, gmodel = setGasModel('air-5sp.lua')
+
+Q = GasState:new{gmodel}
 
 Q.rho = rho_inf
 Q.T = T_inf
 Q.massf = {O2=0.22, N2=0.78}
+
+gmodel:updateThermoFromRHOT(Q)
 
 p_inf = Q.p
 
