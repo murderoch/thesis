@@ -12,12 +12,51 @@ CpList = {species: [] for i,species in enumerate(speciesList)}
 with open('thermoData.csv', 'r') as readFile:
     readData = csv.reader(readFile, delimiter=',')
     next(readData)
-    #next(readData)
+    next(readData)
     for row in readData:
         temps.append(float(row[0]))
         for i, species in enumerate(speciesList):
             CpList[species].append(float(row[i + 1]))
 
+
+
+'''
+def piecewise_poly(x, ka1, ka2, ka3, ka4, ka5, ka6, ka7):
+
+    condList = [x <= regions[segment+1]]
+    funcList = [lambda x: ka1*x**-2. + ka2*x**-1. + ka3 + ka4*x + ka5*x**2. + ka6*x**3. + ka7*x**4.]
+
+    return np.piecewise(x, condList, funcList)
+
+
+global segment
+
+regions = [50, 6000, 20000, 50000]
+coeffs = []
+species = 'O'
+
+plt.figure()
+for i in range(len(regions[:-1])):
+    segment = i
+
+    tempsMin = min([x for x in temps if x > regions[i]])
+    tempsMax = max([x for x in temps if x < regions[i+1]])
+
+    tempsMinIdx = temps.index(tempsMin)
+    tempsMaxIdx = temps.index(tempsMax)
+ 
+    CpRegion = CpList[species][tempsMinIdx:tempsMaxIdx]
+    tempRegion = temps[tempsMinIdx:tempsMaxIdx]
+    print(len(tempRegion))
+
+    p, e = optimize.curve_fit(piecewise_poly, tempRegion, CpRegion)
+    
+    tempPlotRegion = np.linspace(regions[i], regions[i+1], 30)
+    plt.plot(tempPlotRegion, piecewise_poly(tempPlotRegion, *p))
+
+plt.plot(temps, CpList[species], 'kx')
+plt.show()
+'''
 
 def piecewise_poly(x,
                    ka1, ka2, ka3, ka4, ka5, ka6, ka7,
@@ -35,13 +74,9 @@ def piecewise_poly(x,
     
     return np.piecewise(x, condlist, funclist)
 
+ranges = [5000, 8000, 20000, 30000]
 
-species = 'O'
-
-divide = 12000
-ranges = [8000, divide, 19000, 21500]
-tempIdx = temps.index(divide)
-
+tempIdx = temps.index(10000)
 
 test = CpList[species]
 test1 = test[:tempIdx]
@@ -56,21 +91,5 @@ p1, e1 = optimize.curve_fit(piecewise_poly, temps1, test1)
 trial = 2
 p2, e2 = optimize.curve_fit(piecewise_poly, temps2, test2)
 
-print(p2)
-
-with open('output.dat', 'w') as outputFile:
-    outputFile.writelines('~~~~~~~' + species + '~~~~~~~\n')
-    tempBreaksStr = ''
-    for temp in ranges:
-        tempBreaksStr += ', ' + str(temp)
-    outputFile.writelines('temperature breaks' + tempBreaksStr + '\n')
-    for coeffs in p1:
-        print(coeffs)
-xd1 = np.linspace(min(temps1), max(temps1)+1000, 1000)
-xd2 = np.linspace(min(temps2)-1000, max(temps2), 4000)
-
-plt.figure()
-plt.plot(temps, test, 'kx')
-plt.plot(xd1, piecewise_poly(xd1, *p1))
-plt.plot(xd2, piecewise_poly(xd2, *p2))
-plt.show()
+xd1 = np.linspace(min(temps1), max(temps1), 1000)
+xd2 = np.linspace(min(temps2), max(temps2), 1000)

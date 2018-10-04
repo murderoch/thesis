@@ -9,7 +9,7 @@ y = np.array([5, 7, 9, 11, 13, 15, 28.92, 42.81, 56.7, 70.59, 84.47, 98.36, 112.
 
 def piecewise_linear(x, x0, y0, k1, k2):
     condlist = [x < x0]
-    funclist = [lambda x:k1*x**2 + y0-k1*x0, 
+    funclist = [lambda x: k1*x**2 + y0-k1*x0, 
                 lambda x:k2*x + y0-k2*x0]
     return np.piecewise(x, condlist, funclist)
 
