@@ -36,7 +36,7 @@ regions = {'O':   [0, 6000, 14000, 22000, 50000],   #good
 
 
 def func(x, a, b, c, d, e, f, g):
-    y = a*x**-2. + b*x**-1 + c + d*x + e*x**2. + f*x**3. + g*x**4.
+    y = a*x**-2. + b*x**-1 + c + d*x + e*x**2. + f*x**3. + g*x**4. + g*x**5. + g*x**6.
     return y
 
 with open('output.dat', 'w') as outputFile:
@@ -76,7 +76,7 @@ with open('output.dat', 'w') as outputFile:
 
             coeffStr += '| '
             for coeff in p:
-                coeffStr += str(coeff) + ', '
+                coeffStr += "{:.9e}".format(coeff) + ', '
 
             coeffStr += '\n'
             outputFile.writelines(coeffStr)
