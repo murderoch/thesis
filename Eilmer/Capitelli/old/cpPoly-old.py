@@ -16,6 +16,8 @@ class CoefficientList:
 temps = []
 speciesList = ['O', 'O+', 'O2', 'O2+', 'N', 'N+', 'N2', 'N2+', 'NO', 'NO+', 'e']
 
+#speciesList = ['O+', 'O2', 'O2+', 'N', 'N+', 'N2', 'N2+', 'NO', 'e']
+
 CpList = {species: [] for i,species in enumerate(speciesList)}
 
 R = 8.3144598
@@ -30,13 +32,11 @@ with open('thermoData.csv', 'r') as readFile:
             CpList[species].append(float(row[i + 1]) / R)
 
 
-plotSpecies = 'N2'
-
-'''
+plotSpecies = ''
 regions = {'O':   [0, 6000, 14000, 22000, 50000],   #good
            'O+':  [0, 14000, 32000, 50000],         #good
            'N':   [0, 6000, 14000, 22000, 50000],   #good
-           'N+':  [0, 6000, 24000, 38000, 50000],   #good
+           'N+':  [0, 14000, 30000, 50000],         #good
            'O2':  [0, 600, 4000, 10000, 50000],     #good
            'O2+': [0, 600, 4000, 14000, 50000],     #good
            'N2':  [0, 600, 10000, 20000, 50000],    #good
@@ -44,21 +44,10 @@ regions = {'O':   [0, 6000, 14000, 22000, 50000],   #good
            'NO':  [0, 600, 4000, 15000, 50000],     #good
            'NO+': [0, 600, 12000, 20000, 50000],    #good
            'e':   [0, 50000]}
-'''
-regions = {'O':   [0, 6000, 14000, 22000, 50000],   #good
-           'O+':  [0, 14000, 32000, 50000],         #good
-           'N':   [0, 6000, 14000, 22000, 50000],   #good
-           'N+':  [0, 6000, 24000, 38000, 50000],   #good
-           'O2':  [0, 600, 4000, 10000, 50000],     #good
-           'O2+': [0, 600, 4000, 14000, 50000],     #good
-           'N2':  [100, 600, 10000, 20000, 50000],   #good
-           'N2+': [0, 600, 5000, 12000, 50000],     #good
-           'NO':  [0, 600, 4000, 15000, 50000],     #good
-           'NO+': [0, 600, 12000, 20000, 50000],    #good
-           'e':   [0, 50000]}
+
 
 def func(x, a, b, c, d, e, f, g):
-    y = a*x**-2. + b*x**-1 + c + d*x + e*x**2. + f*x**3. + g*x**4.
+    y = a*x**-2. + b*x**-1 + c + d*x + e*x**2. + f*x**3. + g*x**4.# + g*x**5. + g*x**6.
     return y
 
 allSpeciesList = []
@@ -87,11 +76,7 @@ with open('output.dat', 'w') as outputFile:
             tempRegion = temps[tempsMinIdx:tempsMaxIdx]
             cpRegion = CpSpecies[tempsMinIdx:tempsMaxIdx]
 
-            cpWeight = np.empty(len(cpRegion))
-            cpWeight.fill(10)
-            cpWeight[0] = cpWeight[-1] = 0.1
-
-            p, e = optimize.curve_fit(func, tempRegion, cpRegion, sigma = cpWeight)
+            p, e = optimize.curve_fit(func, tempRegion, cpRegion)
             
             xd = np.linspace(min(tempRegion), max(tempRegion), 1000)
 
@@ -121,84 +106,54 @@ with open('output.dat', 'w') as outputFile:
 
 #plt.show()
 
+
+
 def getCoeffs(temp, tempList):
     for key, value in tempList:
         if temp < key[1] and temp >= key[0]:
             return value
     return 0
 
+
 plt.figure()
-
-
-plotTemps = range(200, 20000, 10)
+plotTemps = range(200, 1000, 100)
 yplot = []
 
-#species = allSpeciesList[6]
-species = { (100, 600):  [ -1.357998069e+03,
-                        4.074344664e+01,
-                        3.009094920e+00,
-                        3.036860470e-03,
-                       -9.939853784e-06,
-                        1.575896162e-08,
-                       -8.493317618e-12,],
-    
-        (600, 1000): [  3.561032511e+04,
-                        -4.823315234e+02,
-                        4.176549841e+00,
-                        2.797898299e-04,
-                        -5.559406916e-08,
-                        3.471667200e-12,
-                        5.866562848e-17,],
-        (1000, 50000): [ 1.000000000e+00,
-                        3.948581822e+03,
-                        5.389505726e+01,
-                        -1.520063528e-02,
-                        1.654607432e-06,
-                        -7.406707299e-11,
-                        1.174825602e-15,]}
-
+species = allSpeciesList[1]
 for temp in plotTemps:
-    #coeff = getCoeffs(temp, species.tempList.items())
-    coeff = getCoeffs(temp, species)
+    coeff = getCoeffs(temp, species.tempList.iterms())
     yplot.append(func(temp, coeff[0], coeff[1], coeff[2], coeff[3], coeff[4], coeff[5], coeff[6]))
 
-plt.plot(plotTemps, yplot, label='mine')
+plt.plot(plotTemps, yplot)
 
-CEA = {(200, 1000): [2.210371497e+04,
-                -3.818461820e+02,
-                6.082738360e+00,
-                -8.530914410e-03,
-                1.384646189e-05,
-                -9.625793620e-09,
-                2.519705809e-12,
-                7.108460860e+02,
-                -1.076003744e+01],
+CEA = {(200, 1000): [-7.953611300e+03,
+                    1.607177787e+02,
+                    1.966226438e+00,
+                    1.013670310e-03,
+                    -1.110415423e-06,
+                    6.517507500e-10,
+                    -1.584779251e-13],
     
-       (1000, 6000): [5.877124060e+05,
-                    -2.239249073e+03,
-                    6.066949220e+00,
-                    -6.139685500e-04,
-                    1.491806679e-07,
-                    -1.923105485e-11,
-                    1.061954386e-15,
-                    1.283210415e+04,
-                    -1.586640027e+01,],
-        (6000, 50000): [8.310139160e+08,
-                    -6.420733540e+05,
-                    2.020264635e+02,
-                    -3.065092046e-02,
-                    2.486903333e-06,
-                    -9.705954110e-11,
-                    1.437538881e-15,
-                    4.938707040e+06,
-                    -1.672099740e+03,]}
-
+       (100, 6000): [2.619020262e+05,
+                    -7.298722030e+02,
+                    3.317177270e+00,
+                    -4.281334360e-04,
+                    1.036104594e-07,
+                    -9.438304330e-12,
+                    2.725038297e-16],
+        (6000, 20000): [1.779004264e+08,
+                        -1.082328257e+05,
+                        2.810778365e+01,
+                        -2.975232262e-03,
+                        1.854997534e-07,
+                        -5.796231540e-12,
+                        7.191720164e-17]}
 
 yplot = []
 for temp in plotTemps:
-    coeff = getCoeffs(temp, CEA.items())
+    coeff = getCoeffs(temp, CEA)
     yplot.append(func(temp, coeff[0], coeff[1], coeff[2], coeff[3], coeff[4], coeff[5], coeff[6]))
 
-plt.plot(plotTemps, yplot, label = 'CEA')
-plt.legend()
+plt.plot(plotTemps, yplot)
+
 plt.show()
