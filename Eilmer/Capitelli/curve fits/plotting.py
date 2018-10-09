@@ -71,16 +71,18 @@ def plotCp(speciesStr, plotTemps, allSpeciesList, CEA, Capitelli):
     for temp in plotTemps:
         CpCoeff = getCoeffs(temp, species.cpList.items())
         yplot.append(CpFunc(temp, *CpCoeff))
-    plt.plot(plotTemps, yplot, label='mine')
+    plt.plot(plotTemps, yplot, label='Least Squares Fit')
 
     if CEA:
+        plotTemps = range(300, 20000)
         yplot = []
         for temp in plotTemps:
             coeff = getCoeffs(temp, CEA.items())
-            yplot.append(CpFunc(temp, *coeff))
-        plt.plot(plotTemps, yplot, label = 'CEA')
-    plt.plot(Capitelli[0], Capitelli[1], 'kx', label = 'Cap\'n')
-    plt.legend()
+            yplot.append(CpFunc(temp, *coeff[:7]))
+        plt.plot(plotTemps, yplot, label = 'CEA (2002)')
+    plt.plot(Capitelli[0], Capitelli[1], 'k+', label = 'Capitelli (2005)')
+    plt.grid()
+    plt.legend(loc = 1)
 
 
 def plotEnthalpy(speciesStr, plotTemps, allSpeciesList, CEA, Capitelli):
@@ -90,16 +92,18 @@ def plotEnthalpy(speciesStr, plotTemps, allSpeciesList, CEA, Capitelli):
         CpCoeff = getCoeffs(temp, species.cpList.items())
         enthalpyCoeff = getCoeffs(temp, species.enthalpyList.items())
         yplot.append(enthFunc(temp, *CpCoeff, enthalpyCoeff))
-    plt.plot(plotTemps, yplot, label='mine')
+    plt.plot(plotTemps, yplot, label='Least Squares')
 
     if CEA:
         yplot = []
+        plotTemps = range(300, 20000)
         for temp in plotTemps:
             coeff = getCoeffs(temp, CEA.items())
-            yplot.append(enthFunc(temp, *coeff))
-        plt.plot(plotTemps, yplot, label = 'CEA')
-    plt.plot(Capitelli[0], Capitelli[1], 'kx', label = 'Cap\'n')
-    plt.legend()
+            yplot.append(enthFunc(temp, *coeff[:8]))
+        plt.plot(plotTemps, yplot, label = 'CEA (2002)')
+    plt.plot(Capitelli[0], Capitelli[1], 'kx', label = 'Capitelli (2005)')
+    plt.grid()
+    plt.legend(loc = 4)
 
 
 def plotEntropy(speciesStr, plotTemps, allSpeciesList, CEA, Capitelli):
@@ -109,14 +113,16 @@ def plotEntropy(speciesStr, plotTemps, allSpeciesList, CEA, Capitelli):
         CpCoeff = getCoeffs(temp, species.cpList.items())
         entropyCoeff = getCoeffs(temp, species.entropyList.items())
         yplot.append(entrFunc(temp, *CpCoeff, entropyCoeff))
-    plt.plot(plotTemps, yplot, label='mine')
+    plt.plot(plotTemps, yplot, label='Least Squares')
 
     if CEA:
         yplot = []
+        plotTemps = range(300, 20000)
         for temp in plotTemps:
             coeff = getCoeffs(temp, CEA.items())
+            coeff = coeff[:7] + [coeff[-1]]
             yplot.append(entrFunc(temp, *coeff))
-        plt.plot(plotTemps, yplot, label = 'CEA')
-
-    plt.plot(Capitelli[0], Capitelli[1], 'kx', label = 'Cap\'n')
-    plt.legend()
+        plt.plot(plotTemps, yplot, label = 'CEA (2002)')
+    plt.grid()
+    plt.plot(Capitelli[0], Capitelli[1], 'kx', label = 'Capitelli (2005)')
+    plt.legend(loc = 4)
