@@ -67,6 +67,7 @@ class Thermo:
         # Capitelli style fixed cutoffEnergy method
         cutoffJoules = (self.species.Io - self.cutoffEnergy) * self.constants.Cm_1ToJoules
 
+        
         # Gordon and McBride 'TEMPER' Method
         #cutoffJoules = self.species.Io*self.constants.Cm_1ToJoules - T * self.constants.kB #/ self.cm_1ToJoules
         

@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 constants = util.Constants()
 
-nMax = 30
+nMax = 7
 
 speciesList = ['O', 'O+', 'F+', 'Ne++']
 
@@ -28,32 +28,11 @@ theory = spectra.calculateExpectedStates(use, nMax)
 
 calcEnergy = spectra.CalcEnergy(nMax, use, NIST, theory, allSpecies)
 completeLevels, calculatedLevels = calcEnergy.populateTheory()
-
-for config in calculatedLevels:
-    if config.term.checkLevelEnergies() != None:
-        print('Missing energy for:', config.ID, config.core.term.getTermString())
-
-calculatedLevels.sort(key=lambda x: x.term.maxEnergy)
-with open('calculatedLevels.dat', 'w') as outputFile:
-    for config in calculatedLevels:
-        outputFile.write('\n')
-        for level in config.term.levels:
-            outputFile.writelines(config.ID + ', ' + str(level.J) + ', ' + str(level.energy) + '\n')
+calculatedLevels = spectra.sortSpectra(calculatedLevels, 'calculated')
+completeLevels = spectra.sortSpectra(completeLevels, 'complete')
 
 
-
-for config in completeLevels:
-    if config.term.checkLevelEnergies() != None:
-        print('Missing energy for:', config.ID, config.core.term.getTermString())
-
-with open('output.dat2', 'w') as outputFile:
-    for config in completeLevels:
-        outputFile.write('\n')
-        for level in config.term.levels:
-            outputFile.writelines(config.ID + ', ' + str(level.J) + ', ' + str(level.energy) + '\n')
-
-completeLevels.sort(key=lambda x: x.term.maxEnergy)
-
+'''
 tempRange = range(300, 50000, 50)
 
 asdf = thermo.Thermo(use, completeLevels, tempRange, 250)
@@ -77,3 +56,4 @@ plt.plot(Gordon1999[0], Gordon1999[1], label = 'Gordon')
 #plt.xlim([0, 10000])
 plt.legend()
 plt.show()
+'''

@@ -97,7 +97,6 @@ class Term:
 
     def checkLevelEnergies(self):
         self.maxEnergy = max([x.energy for x in self.levels])
-
         emptyLevels = []
         for level in self.levels:
             if level.energy == None:
@@ -106,6 +105,8 @@ class Term:
             return None
         else:
             return emptyLevels
+
+
 
     def getJ(self):
         JMax = self.L + self.S
@@ -221,12 +222,12 @@ class CalcEnergy:
                         coreEnergy = None
                         speciesIonNISTConfig = next((x for x in self.speciesIon[1] if x.ID == configuration.core.ID))
                         if speciesIonNISTConfig:
+                        
 
                             energyList = [x.energy for x in speciesIonNISTConfig.term.levels]
                             coreEnergy = sum(energyList)/len(energyList)
 
                         if coreEnergy != None:
-                            coreEnergy = coreEnergy/len(speciesIonNISTConfig.term.levels)
                             energy = self.ritzRydberg(configuration, level, coreEnergy, matchedTerms)
                     else:
                         energy = self.azimuthalQuantumExtrapolation(configuration, level, matchedCores)
@@ -267,10 +268,9 @@ class CalcEnergy:
     def azimuthalQuantumExtrapolation(self, configuration, level, matchedCores):
         fitEnergyList = []
         fitLList = []
-        #print('\n')
         for config in matchedCores:
             if config.excitedState.subShell.n == configuration.excitedState.subShell.n:
-                #print(config.ID)
+                
                 energyList = [x.energy for x in config.term.levels]
                 avgEnergy = sum(energyList)/len(energyList)
                 
@@ -292,14 +292,28 @@ class CalcEnergy:
         n = configuration.term.n
         I = self.species.Io + coreEnergy
 
-        A, B = self.getCoefficients(coreEnergy, matchedTerms)
 
-        if A != None and B != None:
-            energy = I - IH*(z + 1.)**2. / (n + A + B/n**2.)**2.
-        else:
-            energy = None
+        if configuration.ID == '1s2.2s2.2p3.7p1--3.0P[2.0, 1.0, 0.0]':               
+            A, B = self.getCoefficients(coreEnergy, matchedTerms)
+
+            if A != None and B != None:
+                energy = I - IH*(z + 1.)**2. / (n + A + B/n**2.)**2.
+            else:
+                energy = None
+
         
+
+            print(configuration.ID, level.J, configuration.core.ID, coreEnergy, energy)
+            plt.figure()
+            plt.plot(n, energy, 'ko')
+            for config in matchedTerms:
+                energyList = [x.energy for x in config.term.levels]
+                valEnergy = sum(energyList)/len(energyList)
+                plt.plot(config.term.n, valEnergy, 'rx')
+
+        plt.show()
         return energy
+
 
     def getCoefficients(self, coreEnergy, matchedTerms):
         # fit curve and calculate coefficients
@@ -344,6 +358,7 @@ class CalcEnergy:
                 A = None
                 B = None
         return A, B
+
 
 def clebschGordon(x, y):
     i = x + y
@@ -549,6 +564,24 @@ def getTerms(L, noElectrons):
                     del MS2_ML[MS,ML]
                 N -= 1
     return terms
+
+
+def sortSpectra(levelList, outputFileName):
+    for config in levelList:
+        if config.term.checkLevelEnergies() != None:
+            print('Missing energy for:', config.ID, config.core.term.getTermString())
+
+    levelList.sort(key=lambda x: x.term.maxEnergy)
+
+    if outputFileName:
+        with open(outputFileName + '.dat', 'w') as outputFile:
+            for config in levelList:
+                outputFile.write('\n')
+                for level in config.term.levels:
+                    outputFile.writelines(config.ID + ', ' + str(level.J) + ', ' + str(level.energy) + '\n')
+    return levelList
+
+
 
 
 if __name__ == '__main__':
