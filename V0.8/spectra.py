@@ -17,11 +17,21 @@ class Configuration:
         self.excitedState = excitedState
         self.term = term
 
+        if core.term:
+            coreTermStr = '(' + str(core.term.S * 2 + 1.) + str(util.termMap[core.term.L]) + ')'
+        elif self.excitedState:
+            coreTermStr = ''
+
+
         if self.excitedState:
-            self.ID = self.core.atomicNotation + '.' + self.excitedState.subShell.getSubShellString() + '--' + term.getTermString()
+            self.ID = self.core.atomicNotation + coreTermStr + '.' + self.excitedState.subShell.getSubShellString() + '--' + term.getTermString()
         else:
             self.ID = self.core.atomicNotation + '--' + term.getTermString()
 
+        self.method = None
+
+    def setMethod(self, method):
+        self.method = method
         
 class Core:
     def __init__(self, subShells, term):
@@ -170,21 +180,14 @@ class CalcEnergy:
                         level.setEnergy(NISTlevel.energy)
                     else:
                         energy = self.getEnergy(allLevels, config, level)
-                        if energy != None and energy > 0:
-                            level.setEnergy(energy)
-                        elif config in allLevels:
-                            allLevels.remove(config)
+                        level.setEnergy(energy)
+            
             else:
                 for level in config.term.levels:
                     energy = self.getEnergy(allLevels, config, level)
-                    appendCheck = None
-                    if energy != None and energy > 0:
-                        level.setEnergy(energy)
-                        appendCheck = True
-                    elif config in allLevels:
-                        allLevels.remove(config)
-                if appendCheck:
-                    calculatedLevels.append(config)
+                    level.setEnergy(energy)
+                calculatedLevels.append(config)                   
+            
 
         return allLevels, calculatedLevels
 
@@ -193,6 +196,7 @@ class CalcEnergy:
         if configuration.term.n <= 20 and self.speciesIon != None:
             
             if configuration.excitedState == None:
+                configuration.setMethod('coreIonExtrap')
                 energy = self.coreIonEnergyExtrapolation(configuration, level)
 
             else:
@@ -222,18 +226,21 @@ class CalcEnergy:
                         coreEnergy = None
                         speciesIonNISTConfig = next((x for x in self.speciesIon[1] if x.ID == configuration.core.ID))
                         if speciesIonNISTConfig:
-                        
-
                             energyList = [x.energy for x in speciesIonNISTConfig.term.levels]
                             coreEnergy = sum(energyList)/len(energyList)
 
                         if coreEnergy != None:
+                            configuration.setMethod('ritzRydberg')
                             energy = self.ritzRydberg(configuration, level, coreEnergy, matchedTerms)
+                            
                     else:
+                        configuration.setMethod('azimuthalQuantExtrap')
                         energy = self.azimuthalQuantumExtrapolation(configuration, level, matchedCores)
-
+                        
         if energy == None:
+            configuration.setMethod('hydrogenic')
             energy = self.hydrogenicApprox(configuration.term.n)
+            
 
         return energy
 
@@ -263,9 +270,9 @@ class CalcEnergy:
             energy = m * self.species.charge + c         
             return energy
         else:
-            return None
+            return None/
 
-    def azimuthalQuantumExtrapolation(self, configuration, level, matchedCores):
+    def azimuthalQuantumExtrapolation(self, configuration, level, matchedCores):       
         fitEnergyList = []
         fitLList = []
         for config in matchedCores:
@@ -273,13 +280,14 @@ class CalcEnergy:
                 
                 energyList = [x.energy for x in config.term.levels]
                 avgEnergy = sum(energyList)/len(energyList)
-                
                 fitLList.append(config.excitedState.L)
                 fitEnergyList.append(avgEnergy)
 
-        if len(fitEnergyList) < 1:
+        if len(fitEnergyList) == 0 or len(set(fitLList)) <= 1:
             energy = self.hydrogenicApprox(configuration.term.n)
+            configuration.setMethod('hydrogenic')
         else:
+            #print(fitLList, fitEnergyList)
             fit = np.polyfit(fitLList, fitEnergyList, 1)
             energy = fit[0] * configuration.excitedState.L + fit[1]
         
@@ -288,38 +296,24 @@ class CalcEnergy:
 
     def ritzRydberg(self, configuration, level, coreEnergy, matchedTerms):
         IH = self.constants.IH
-        z = self.species.charge
+        z = self.species.atomicNumber
         n = configuration.term.n
         I = self.species.Io + coreEnergy
 
+        A, B = self.getCoefficients(coreEnergy, matchedTerms)
 
-        if configuration.ID == '1s2.2s2.2p3.7p1--3.0P[2.0, 1.0, 0.0]':               
-            A, B = self.getCoefficients(coreEnergy, matchedTerms)
-
-            if A != None and B != None:
-                energy = I - IH*(z + 1.)**2. / (n + A + B/n**2.)**2.
-            else:
-                energy = None
-
-            '''
-            print(configuration.ID, level.J, configuration.core.ID, coreEnergy, energy)
-            plt.figure()
-            plt.plot(n, energy, 'ko')
-            for config in matchedTerms:
-                energyList = [x.energy for x in config.term.levels]
-                valEnergy = sum(energyList)/len(energyList)
-                plt.plot(config.term.n, valEnergy, 'rx')
-
-            '''
+        if A != None and B != None:
+            energy = I - IH*(z + 1.)**2. / (n + A + B/n**2.)**2.
         else:
-            energy =
+            energy = None
+        
         return energy
 
 
     def getCoefficients(self, coreEnergy, matchedTerms):
         # fit curve and calculate coefficients
         IH = self.constants.IH
-        z = self.species.charge
+        z = self.species.atomicNumber
         I = self.species.Io + coreEnergy
 
         if len(matchedTerms) == 1:
@@ -337,18 +331,12 @@ class CalcEnergy:
         elif len(matchedTerms) >= 2:
             fitnList = []
             fitEnergyList = []
-
             for config in matchedTerms:
                 n = config.term.n
                 energyList = [x.energy for x in config.term.levels]
                 energy = sum(energyList)/len(energyList)
                 fitnList.append(n)
                 fitEnergyList.append(energy) 
-                
-            plt.figure()
-            for i in range(len(fitnList)):
-                plt.plot(fitnList[i], fitEnergyList[i], 'rx')
-
             if energy > I:
                 return None, None
 
@@ -356,13 +344,9 @@ class CalcEnergy:
                 energy = I - IH*(z + 1.)**2. / (n + A + B/n**2.)**2.
                 return energy
 
-            try:
-                p, _ = optimize.curve_fit(func, fitnList, fitEnergyList)   
-                A = p[0]
-                B = p[1]
-            except RuntimeError:
-                A = None
-                B = None
+            p, _ = optimize.curve_fit(func, fitnList, fitEnergyList)   
+            A = p[0]
+            B = p[1]
         return A, B
 
 
@@ -579,7 +563,15 @@ def sortSpectra(levelList, outputFileName):
 
     levelList.sort(key=lambda x: x.term.maxEnergy)
 
-    if outputFileName:
+    if outputFileName == 'calculated':
+        with open(outputFileName + '.dat', 'w') as outputFile:
+            for config in levelList:
+                outputFile.write('\n')
+                for level in config.term.levels:
+                    outputFile.writelines(config.ID + ', ' + str(level.J) + ', ' + str(level.energy) + ', ' + config.method + '\n')
+    
+    
+    else:
         with open(outputFileName + '.dat', 'w') as outputFile:
             for config in levelList:
                 outputFile.write('\n')
