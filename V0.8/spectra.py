@@ -106,7 +106,13 @@ class Term:
             self.levels.append(Level(J, None))
 
     def checkLevelEnergies(self):
-        self.maxEnergy = max([x.energy for x in self.levels])
+        self.maxEnergy = 0
+        for level in self.levels:
+            if level.energy == None:
+                level.energy = 0
+            if level.energy > self.maxEnergy:
+                self.maxEnergy = level.energy
+
         emptyLevels = []
         for level in self.levels:
             if level.energy == None:
@@ -115,8 +121,6 @@ class Term:
             return None
         else:
             return emptyLevels
-
-
 
     def getJ(self):
         JMax = self.L + self.S
@@ -155,6 +159,10 @@ class CalcEnergy:
 
         self.speciesIon = None
 
+        with open('hi.dat', 'w') as outFile:
+            for config in self.NIST:
+                outFile.write(config.ID + '\n')
+
         self.comprableIons = []
         for ionSpecies in allSpecies:
             speciesObj = ionSpecies[0]
@@ -175,7 +183,7 @@ class CalcEnergy:
             NISTConfig = next((x for x in self.NIST if x.ID == config.ID), None)
             if NISTConfig:
                 for level in config.term.levels:
-                    NISTlevel = next((x for x in NISTConfig.term.levels if x.J == level.J), None)
+                    NISTlevel = next((x for x in NISTConfig.term.levels if x.J == level.J and x.energy != None), None)
                     if NISTlevel:
                         level.setEnergy(NISTlevel.energy)
                     else:
@@ -205,17 +213,7 @@ class CalcEnergy:
                     if config.excitedState:
                         if config.core.ID == configuration.core.ID:
                             matchedCores.append(config)
-
-                for config in allLevels:     
-                    if config.excitedState:
-                        if config.core.ID == configuration.core.ID:
-                            checkEnergy = 0
-                            for level in config.term.levels:
-                                if level.energy:
-                                    checkEnergy += 1
-                            if checkEnergy == len(config.term.levels):
-                                matchedCores.append(config)
-
+                            
                 if len(matchedCores) > 0:
                     matchedTerms = []
                     for config in matchedCores:
@@ -270,7 +268,7 @@ class CalcEnergy:
             energy = m * self.species.charge + c         
             return energy
         else:
-            return None/
+            return None
 
     def azimuthalQuantumExtrapolation(self, configuration, level, matchedCores):       
         fitEnergyList = []
@@ -278,7 +276,7 @@ class CalcEnergy:
         for config in matchedCores:
             if config.excitedState.subShell.n == configuration.excitedState.subShell.n:
                 
-                energyList = [x.energy for x in config.term.levels]
+                energyList = [x.energy for x in config.term.levels if x.energy != None]
                 avgEnergy = sum(energyList)/len(energyList)
                 fitLList.append(config.excitedState.L)
                 fitEnergyList.append(avgEnergy)
@@ -287,7 +285,6 @@ class CalcEnergy:
             energy = self.hydrogenicApprox(configuration.term.n)
             configuration.setMethod('hydrogenic')
         else:
-            #print(fitLList, fitEnergyList)
             fit = np.polyfit(fitLList, fitEnergyList, 1)
             energy = fit[0] * configuration.excitedState.L + fit[1]
         
@@ -306,7 +303,27 @@ class CalcEnergy:
             energy = I - IH*(z + 1.)**2. / (n + A + B/n**2.)**2.
         else:
             energy = None
-        
+
+
+        if 1:
+            def func(n, A, B):
+                energy = I - IH*(z + 1.)**2. / (n + A + B/n**2.)**2.
+                return energy
+
+            if configuration.ID == '1s2.2s2.2p3(4.0S).19p1--3.0P[2.0, 1.0, 0.0]':
+                plt.figure()
+                xPlot = range(2,10)
+                yPlot = [func(x, A, B) for x in xPlot]
+                print('\n', configuration.ID, 'No Matches:', len(matchedTerms))
+                for config in matchedTerms:
+                    energyList = [x.energy for x in config.term.levels]
+                    Anergy = sum(energyList)/len(energyList)
+                    plt.plot(config.term.n, Anergy, 'bo')
+                    print('matched to: ', config.ID)
+                    print(config.term.n, Anergy)    
+                plt.plot(xPlot, yPlot, 'b--')
+                plt.plot(n, energy, 'rx')
+                plt.show()
         return energy
 
 
@@ -315,11 +332,12 @@ class CalcEnergy:
         IH = self.constants.IH
         z = self.species.atomicNumber
         I = self.species.Io + coreEnergy
+        #Ry = self.constants.Rydberg * (self.species.atomicNumber - self.speciesIon[0].noElectrons)**2.
 
         if len(matchedTerms) == 1:
             config = matchedTerms[0]
             n = config.term.n
-            energyList = [x.energy for x in config.term.levels]
+            energyList = [x.energy for x in config.term.levels if x.energy != None]
             energy = sum(energyList)/len(energyList)
 
             if energy > I:
@@ -327,13 +345,14 @@ class CalcEnergy:
 
             B = 0
             A = sqrt(self.constants.IH * (z + 1.)**2. / (I - energy)) - n
+            #A = sqrt(Ry / (I - energy)) - n
         
         elif len(matchedTerms) >= 2:
             fitnList = []
             fitEnergyList = []
             for config in matchedTerms:
                 n = config.term.n
-                energyList = [x.energy for x in config.term.levels]
+                energyList = [x.energy for x in config.term.levels if x.energy != None]
                 energy = sum(energyList)/len(energyList)
                 fitnList.append(n)
                 fitEnergyList.append(energy) 
@@ -342,8 +361,11 @@ class CalcEnergy:
 
             def func(n, A, B):
                 energy = I - IH*(z + 1.)**2. / (n + A + B/n**2.)**2.
+                #energy = I - Ry /  (n + A + B/n**2.)**2.
                 return energy
 
+            #sigma = [1 for x in range(len(fitnList))]
+            #sigma[-1] = 0.2
             p, _ = optimize.curve_fit(func, fitnList, fitEnergyList)   
             A = p[0]
             B = p[1]
@@ -397,6 +419,7 @@ def readNISTSpectra(species):
     def readConfiguration(inputStr):
         configs = inputStr.split('.')
         coreShells = [SubShell(1, 0, 2)]
+        coreJ = None
 
         _, _, finalSubShellNoElectrons = formatConfig(configs[-1])
 
@@ -404,9 +427,23 @@ def readNISTSpectra(species):
             coreTerm = None
             for config in configs[:-1]: 
                 if config[0] == '(':
+
+                    if '<' in config:
+                        openIdx = config.index('<')
+                        closeIdx = config.index('>')
+                        if '/' in config:
+                            slashIdx = config.index('/')
+                            num = float(config[openIdx+1:slashIdx])
+                            denom = float(config[slashIdx+1:closeIdx])
+                            coreJ = num/denom
+                        else:
+                            coreJ = float(config[openIdx+1:closeIdx])
+
                     coreS = (float(config[1]) - 1.) / 2.
                     coreL = util.termMap.index(config[2])
                     coreTerm = Term(coreL, coreS, coreShells[-1].n)
+
+
                 else:
                     n, L, noElectrons = formatConfig(config)
                     coreShells.append(SubShell(n, L, noElectrons))
@@ -423,7 +460,7 @@ def readNISTSpectra(species):
                 core = Core(coreShells, None)
                 excitedState = None
 
-        return core, excitedState
+        return core, excitedState, coreJ
 
     def readTerm(inputStr):
         LStr = ''
@@ -447,7 +484,7 @@ def readNISTSpectra(species):
                 continue
 
             values = row.rstrip('\n').split(', ')
-            core, excitedState = readConfiguration(values[0])
+            core, excitedState, coreJ = readConfiguration(values[0])
             L, S = readTerm(values[1])
             if excitedState:
                 n = excitedState.subShell.n
@@ -464,7 +501,8 @@ def readNISTSpectra(species):
             
             for level in configuration.term.levels:
                 if configuration.term.L == L and configuration.term.S == S and level.J == float(values[2]):
-                    level.setEnergy(float(values[3]))
+                    if values[3] != 'None':
+                        level.setEnergy(float(values[3]))
     return NIST
 
 def calculateExpectedStates(species, nMax):
@@ -484,10 +522,11 @@ def calculateExpectedStates(species, nMax):
             maxElectrons = 2.*(L * 2. + 1.)
             if noElectrons < maxElectrons:
                 coreSLs = getTerms(L, noElectrons)
+
                 for coreSL in coreSLs:
                     termObj = Term(coreSL[0], coreSL[1], n)
                     cores.append(Core(coreShells, termObj))
-
+                    
     for core in cores:
         if core.noElectrons == species.noElectrons:
             n = core.maxN
@@ -499,15 +538,27 @@ def calculateExpectedStates(species, nMax):
         else:
             for n in range(core.maxN+1, nMax+1, 1):
                 for L in range(0, n, 1):
-                    excitedShell = SubShell(n, L, 1)
-                    excitedState = ExcitedState(excitedShell)
-                    SArr = clebschGordon(core.maxS, excitedState.S)
-                    n = excitedState.subShell.n
+                    
+                    #This gets us to all of the possible excited electron states
 
-                    for S in SArr:
-                        term = Term(L, S, n)
-                        configuration = Configuration(core, excitedState, term)
-                        states.append(configuration)      
+                    #now need to consider interaction with coreState
+
+                    #excitedState is good
+                    excitedShell = SubShell(n, L, 1)    
+                    excitedState = ExcitedState(excitedShell)
+
+
+                    #Good, all possible S states from combination of exc and core S
+                    #added all possible L states from combination of exc and core L
+                    SList = clebschGordon(core.term.S, excitedState.S)
+                    LList = clebschGordon(core.term.L, excitedState.L)
+
+                    for Lcomb in LList:
+                        for Scomb in SList:
+                            term = Term(Lcomb, Scomb, n)
+                            configuration = Configuration(core, excitedState, term)
+                            states.append(configuration)
+
     return states
 
 
@@ -560,23 +611,24 @@ def sortSpectra(levelList, outputFileName):
     for config in levelList:
         if config.term.checkLevelEnergies() != None:
             print('Missing energy for:', config.ID, config.core.term.getTermString())
+            for level in config.term:
+                level.setEnergy(0.)
 
     levelList.sort(key=lambda x: x.term.maxEnergy)
+ 
+    with open(outputFileName + '.dat', 'w') as outputFile:
+        for config in levelList:
+            outputFile.write('\n')
+            for level in config.term.levels:
+                writeStr = config.ID + ', ' + str(level.J) + ', ' + str(level.energy)
+                
+                if outputFileName == 'calculated':
+                    writeStr += ' ' + config.method + '\n'
+                else:
+                    writeStr += '\n'
+                
+                outputFile.writelines(writeStr)
 
-    if outputFileName == 'calculated':
-        with open(outputFileName + '.dat', 'w') as outputFile:
-            for config in levelList:
-                outputFile.write('\n')
-                for level in config.term.levels:
-                    outputFile.writelines(config.ID + ', ' + str(level.J) + ', ' + str(level.energy) + ', ' + config.method + '\n')
-    
-    
-    else:
-        with open(outputFileName + '.dat', 'w') as outputFile:
-            for config in levelList:
-                outputFile.write('\n')
-                for level in config.term.levels:
-                    outputFile.writelines(config.ID + ', ' + str(level.J) + ', ' + str(level.energy) + '\n')
     return levelList
 
 

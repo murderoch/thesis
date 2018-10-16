@@ -31,7 +31,6 @@ def importFromFile(species):
                 j = row[jIdx-4:jIdx+5]
                 level = row[levelIdx-5:levelIdx+15]
                 
-                
                 for symbol in badSymbols:
                     j = j.replace(symbol, '')
                     level = level.replace(symbol, '')
@@ -45,12 +44,13 @@ def importFromFile(species):
                 if config == '':
                     config = oldConfig    
 
-                '''
-                if '(' in config:
-                    openParIdx = config.index('(')
-                    closeParIdx = config.index(')') + 2
-                    config = config[:openParIdx] + config[closeParIdx:]
-                '''
+                
+                if '<' in config:
+                    openParIdx = config.index('<')
+                    closeParIdx = config.index('>')
+                    coreJ = config[openParIdx:closeParIdx+1]
+
+                    config = config[:openParIdx] + str(coreJ) + config[closeParIdx+1:]
                 
                 if '/' in j:
                     j = float(j.split('/')[0])/float(j.split('/')[1])
@@ -59,16 +59,15 @@ def importFromFile(species):
                 #### Hack. ADD IN ENTRIES FOR LK COUPLING #######
                 if '[' not in term:
                     if not row[0].isalpha(): 
-                        if j.strip() and level != '':
+                        if j.strip():
+                            if level == '':
+                                level = 'None'
                             writeFile.write(config + ', ')
                             writeFile.write(term + ', ')
                             writeFile.write(j + ', ')
                             writeFile.write(level + '\n')
                         else:
                             writeFile.write('\n')
-                    else:
-                        writeFile.write('Limit, ' + level)
-                        break 
                     
                 oldConfig = config
                 oldTerm = term
