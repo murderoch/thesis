@@ -1,16 +1,22 @@
 import util
 
 import matplotlib.pyplot as plt 
-from math import exp
+from math import exp, pi, sqrt
 from collections import defaultdict
 
 class Thermo:
 
-    def __init__(self, species, completeLevels, tempRange, cutoffEnergy):
+    def __init__(self, species, completeLevels, tempRange, cutoffMethod, numberDensity=0):
         self.species = species
         self.completeLevels = completeLevels
         self.tempRange = tempRange
-        self.cutoffEnergy = cutoffEnergy
+        self.numberDensity = numberDensity
+        
+        if type(cutoffMethod) in [float, int]:
+            self.cutoffMethod = 'fixedLowering'
+            self.cutoffEnergy = cutoffMethod
+        else:
+            self.cutoffMethod = cutoffMethod
 
         self.constants = util.Constants()
 
@@ -64,25 +70,37 @@ class Thermo:
 
 
     def calcCutoffIdx(self, T):
-        # Capitelli style fixed cutoffEnergy method
-        cutoffJoules = (self.species.Io - self.cutoffEnergy) * self.constants.Cm_1ToJoules
+        
+        if self.cutoffMethod == 'fixedLowering':
+            # Capitelli style fixed cutoffEnergy method
+            cutoffJoules = (self.species.Io - self.cutoffEnergy) * self.constants.Cm_1ToJoules
+        elif self.cutoffMethod == 'CEATemper':
+            # Gordon and McBride 'TEMPER' Method
+            cutoffJoules = self.species.Io*self.constants.Cm_1ToJoules - T * self.constants.kB
+        elif self.cutoffMethod == 'DebyeHuckel':
+            # Debye-Huckel approximation of ionization lowering
+            z = self.species.charge
+            kB = self.constants.kB
+            epsilon0 = self.constants.vacPermiativity
+            qE = self.constants.electronCharge
+            nE = self.numberDensity
 
-        
-        # Gordon and McBride 'TEMPER' Method
-        #cutoffJoules = self.species.Io*self.constants.Cm_1ToJoules - T * self.constants.kB #/ self.cm_1ToJoules
-        
+            lambdaD = sqrt(epsilon0 * kB * T / (qE**2. * nE))
+            loweringEnergy = qE**2. *  (z + 1)/(4*pi * epsilon0 * lambdaD)
+
+            cutoffJoules = self.species.Io * self.constants.Cm_1ToJoules - loweringEnergy
+        else:
+            print('NO VALID IONIZATION LOWERING FOUND!')
+
+
         cutoff = len(self.epsilon)
-
-        #print(cutoffJoules)
         for e, energy in enumerate(self.epsilon):
-            #print(energy, cutoffJoules)
             if energy > cutoffJoules:
                 cutoff = e - 1
                 break
         if cutoff < 1:
             cutoff = 1
-        
-        #print(cutoff)
+
         return cutoff
 
 

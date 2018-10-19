@@ -5,7 +5,7 @@ import util
 def importFromFile(species):
     NistFilename = util.getSpectralDataDir() + species + ' NIST.dat'
 
-    badSymbols = [' ', '|', '[', ']', '-', '+', 'x', '?', '*']
+    badSymbols = [' ', '|', '[', ']', '-', '+', 'x', '?', '*', 'w', 'x']
     badSymbolsTerm = [' ', '|', '-', '+', 'x', '?', '*']
 
     with open(NistFilename) as NistFile:

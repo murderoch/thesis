@@ -211,6 +211,7 @@ class CalcEnergy:
                 matchedCores = []
                 for config in self.NIST:
                     if config.excitedState:
+                        print(config.ID)
                         if config.core.ID == configuration.core.ID:
                             matchedCores.append(config)
                             
@@ -305,7 +306,7 @@ class CalcEnergy:
             energy = None
 
 
-        if 1:
+        if 0:
             def func(n, A, B):
                 energy = I - IH*(z + 1.)**2. / (n + A + B/n**2.)**2.
                 return energy
