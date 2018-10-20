@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 constants = util.Constants()
 
-nMax = 30
+nMax = 10
 
 speciesList = ['C', 'C+', 'N', 'N+', 'N++', 'O', 'O+', 'O++', 'F+', 'F++', 'F+++', 'Ne++', 'Ne+++']
 
@@ -25,7 +25,7 @@ N = species.Species('N')
 OI = species.Species('O+')
 NI = species.Species('N+')
 
-use = NI
+use = OI
 
 NIST = spectra.readNISTSpectra(use)
 theory = spectra.calculateExpectedStates(use, nMax)
@@ -38,7 +38,7 @@ completeLevels = spectra.sortSpectra(completeLevels, None)
 NISTSorted = spectra.sortSpectra(NIST, None)
 
 tempRange = range(300, 50000, 50)
-ionizationLowering = 500
+ionizationLowering = 250
 #ionizationLowering = 'DebyeHuckel'
 numberDensity = 3E23
 

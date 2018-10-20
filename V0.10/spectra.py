@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 import util
 import species
 
+#constants = util.Constants()
+
 class Configuration:
     def __init__(self, core, excitedState, term):
         self.core = core
@@ -157,10 +159,6 @@ class CalcEnergy:
 
         self.speciesIon = None
 
-        with open('hi.dat', 'w') as outFile:
-            for config in self.NIST:
-                outFile.write(config.ID + '\n')
-
         self.comprableIons = []
         for ionSpecies in allSpecies:
             speciesObj = ionSpecies[0]
@@ -209,7 +207,6 @@ class CalcEnergy:
                 matchedCores = []
                 for config in self.NIST:
                     if config.excitedState:
-                        print(config.core.ID, configuration.core.ID)
                         if config.core.ID == configuration.core.ID:
                             matchedCores.append(config)
                             
@@ -221,7 +218,7 @@ class CalcEnergy:
 
                     if len(matchedTerms) > 0:
                         coreEnergy = None
-                        speciesIonNISTConfig = next((x for x in self.speciesIon[1] if x.ID == configuration.core.ID))
+                        speciesIonNISTConfig = next((x for x in self.speciesIon[1] if x.ID == configuration.core.ID), None)
                         if speciesIonNISTConfig:
                             energyList = [x.energy for x in speciesIonNISTConfig.term.levels]
                             coreEnergy = sum(energyList)/len(energyList)
@@ -406,6 +403,7 @@ def readNISTSpectra(species):
             if isNumber(char) and i >= LIdx:
                 noElectronsStr += char
 
+        #print(string)
         n = int(nStr)
         L = util.subShellMap.index(LStr)
         if noElectronsStr != '':
@@ -419,14 +417,22 @@ def readNISTSpectra(species):
         configs = inputStr.split('.')
         coreShells = [SubShell(1, 0, 2)]
         coreJ = None
+        secondFinalSubShellNoElectrons = None
 
         _, _, finalSubShellNoElectrons = formatConfig(configs[-1])
+        if len(configs) > 1 and '(' not in inputStr:
+            _, _, secondFinalSubShellNoElectrons = formatConfig(configs[-2])
 
         if finalSubShellNoElectrons == 1:
             coreTerm = None
+
+            if secondFinalSubShellNoElectrons == 1:
+                coreS = 0.5
+                coreL = util.subShellMap.index(configs[-2][-1])
+                coreTerm = Term(coreL, coreS, configs[-2][0])
+
             for config in configs[:-1]: 
                 if config[0] == '(':
-
                     if '<' in config:
                         openIdx = config.index('<')
                         closeIdx = config.index('>')
@@ -441,7 +447,6 @@ def readNISTSpectra(species):
                     coreS = (float(config[1]) - 1.) / 2.
                     coreL = util.termMap.index(config[2])
                     coreTerm = Term(coreL, coreS, coreShells[-1].n)
-
 
                 else:
                     n, L, noElectrons = formatConfig(config)
@@ -615,18 +620,19 @@ def sortSpectra(levelList, outputFileName):
 
     levelList.sort(key=lambda x: x.term.maxEnergy)
  
-    with open(outputFileName + '.dat', 'w') as outputFile:
-        for config in levelList:
-            outputFile.write('\n')
-            for level in config.term.levels:
-                writeStr = config.ID + ', ' + str(level.J) + ', ' + str(level.energy)
-                
-                if outputFileName == 'calculated':
-                    writeStr += ' ' + config.method + '\n'
-                else:
-                    writeStr += '\n'
-                
-                outputFile.writelines(writeStr)
+    if outputFileName != None:
+        with open(outputFileName + '.dat', 'w') as outputFile:
+            for config in levelList:
+                outputFile.write('\n')
+                for level in config.term.levels:
+                    writeStr = config.ID + ', ' + str(level.J) + ', ' + str(level.energy)
+                    
+                    if outputFileName == 'calculated':
+                        writeStr += ' ' + config.method + '\n'
+                    else:
+                        writeStr += '\n'
+                    
+                    outputFile.writelines(writeStr)
 
     return levelList
 
