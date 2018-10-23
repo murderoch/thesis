@@ -27,8 +27,9 @@ class CoefficientList:
         self.entropyList[tempRange] = coefficients
 
 speciesList = ['O', 'O+', 'O2', 'O2+', 'N', 'N+', 'N2', 'N2+', 'NO', 'NO+', 'e']
-
-heatOfFormationList = [249.175, 1568.787, 0.00, 1171.828, 462.68, 1882.128, 0.00, 1509.508, 91.271, 990.810, 0.]
+heatOfFormationList = {'O': 249.175, 'O+': 1568.787, 'O2': 0.00, 'O2+': 1171.828, \
+                       'N': 462.68, 'N+': 1882.128, 'N2': 0.00, 'N2+': 1509.508, \
+                       'NO': 91.271, 'NO+':990.810, 'e': 0.}
 
 temps = {species: [] for i,species in enumerate(speciesList)}
 CpList = {species: [] for i,species in enumerate(speciesList)}
@@ -41,7 +42,7 @@ speciesList = ['O', 'O+', 'N', 'N+']
 
 for species in speciesList:
     fileName = species + '-output.csv'
-    heatofFormation = heatOfFormationList[speciesList.index(species)]
+    heatofFormation = heatOfFormationList[species]
 
     with open(fileName, 'r') as readFile:
         readData = csv.reader(readFile, delimiter=',')
@@ -49,13 +50,14 @@ for species in speciesList:
         for row in readData:
             temps[species].append(float(row[0]))
             CpList[species].append(float(row[1]) / R)
+
             enthalpyList[species].append( (float(row[2])/1000. + heatofFormation) / (R * float(row[0])))
             entropyList[species].append(float(row[3]) / R)
 
 
 regions = {'O':   [0, 6000, 14000, 25000, 50000],   #good
            'O+':  [0, 14000, 32000, 50000],         #good
-           'N':   [0, 6000, 12000, 22000, 50000],   #good #bad ETNR
+           'N':   [0, 6000, 13000, 21000, 50000],   #good #bad ETNR
            'N+':  [0, 6000, 24000, 38000, 50000],   #good #bad ENTR
            'O2':  [0, 600, 4000, 10000, 50000],     #good #bad ENTR
            'O2+': [0, 600, 4000, 14000, 50000],     #good #bad ENTR
@@ -156,39 +158,54 @@ for species in speciesList:
 outputDat.outputDat(allSpeciesList)
 
 CEA = CEAData.getCEA()
-#CEA = None
+CEA = None
 
 
-plotSpecies = 'N+'
+
+plotSpecies = 'O+'
+
+speciesList = ['O', 'O+', 'O2', 'O2+', 'N', 'N+', 'N2', 'N2+', 'NO', 'NO+', 'e']
+CapTemps = []
+CapList = {species: [] for i,species in enumerate(speciesList)}
+
+with open('CapitelliCp.csv', 'r') as readFile:
+    readData = csv.reader(readFile, delimiter=',')
+    next(readData)
+    for row in readData:
+        CapTemps.append(float(row[0]))
+        for i, species in enumerate(speciesList):
+            CapList[species].append(float(row[i + 1]) / R)
+
 if plotSpecies != '' and plotSpecies != None:
     speciesList = [plotSpecies]
 
-
 for species in speciesList:
     plt.figure()
+    plt.plot(CapTemps, CapList[plotSpecies], 'kx', label='Capitelli (2005)')
+
     plt.title(species + ' Cp')
-    plt.title('Cp Polynomial Fit for ' + plotSpecies)
+    plt.title('Cp Value Validation for ' + plotSpecies)
     Capitelli = [temps[species], CpList[species]]
     plotTemps = range(200, 50000, 100)
     plotting.plotCp(species, plotTemps, allSpeciesList, CEA, Capitelli)
     plt.ylim([min(Capitelli[1])*0.8, max(Capitelli[1])*1.2])
     plt.xlabel('Temperature (K)')
     plt.ylabel('Cp/R')
-
+    
+    plt.show()
     
     plt.figure()
     plt.title(species + ' Enthalpy')
     plt.title('Enthalpy Polynomial Fit for ' + plotSpecies)
-    plt.title('Comparison of Enthalpy fits for N+')
+    #plt.title('Comparison of Enthalpy fits for N+')
     Capitelli = [temps[species], enthalpyList[species]]
     plotTemps = range(200, 50000, 100)
     plotting.plotEnthalpy(species, plotTemps, allSpeciesList, CEA, Capitelli)
     plt.xlabel('Temperature (K)')
     plt.ylabel('H/RT')
-    plt.ylim([0,0.03])
+    plt.ylim([0,0.05])
     plt.xlim([0, 50000])
     plt.legend(loc=1)
-    plt.show()
 
     plt.figure()
     plt.title(species + ' Entropy')
@@ -198,6 +215,8 @@ for species in speciesList:
     plotting.plotEntropy(species, plotTemps, allSpeciesList, CEA, Capitelli)
     plt.xlabel('Temperature (K)')
     plt.ylabel('S/R')
+
+    plt.show()
     
 
     

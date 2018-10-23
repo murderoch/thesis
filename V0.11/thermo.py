@@ -77,10 +77,17 @@ class Thermo:
         T_1 = 1.0
         P_0 = 100.0E3
 
-        sc = 5./2. + log( ((2*pi*self.species.mass * self.constants.kB * T_1) \
-             / (self.constants.h**2.))**(3./2.) * (self.constants.kB*T)/P_0)
 
-        S = self.constants.R*(log(Q) + 3./2. * log(self.species.molarMass) + 5./2.*log(T) + sc - 5./2.)
+
+        sc = 5./2. + log(((2*pi*self.constants.atomicMassUnits * self.constants.kB * T_1) \
+             / (self.constants.h**2.))**(3./2.) * (self.constants.kB*T_1)/P_0)
+      
+        #S = self.constants.R*(T/Q * Qdot + log(Q) + 3./2.*log(self.species.molarMass) + 5./2.*log(T) + sc)
+
+        #print(self.species.mass)
+        S = self.constants.R*(T/Q * Qdot + log(Q) + 3./2.*log(self.species.molarMass) + 5./2.*log(T) + sc)
+
+        #print(S, S-sc)
 
         return Cp, H, S
 

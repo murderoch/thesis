@@ -9,10 +9,10 @@ import matplotlib.pyplot as plt
 ############### SORT LEVELS ##################
 constants = util.Constants()
 
-nMax = 30
+nMax = 40
 
 speciesList = ['C', 'C+', 'N', 'N+', 'N++', 'O', 'O+', 'O++', 'F+', 'F++', 'F+++', 'Ne++', 'Ne+++']
-useList = ['O+', 'N', 'N+']
+useList = ['O', 'O+', 'N', 'N+']
 #useList = ['N']
 
 for useName in useList:

@@ -66,13 +66,13 @@ def getCoeffs(temp, tempList):
     return 0
 
 def plotCp(speciesStr, plotTemps, allSpeciesList, CEA, Capitelli):
-    plt.plot(Capitelli[0], Capitelli[1], 'k.', label = 'Data Series')
+    plt.plot(Capitelli[0], Capitelli[1], 'k-', label = 'This work')
     yplot = []
     species = allSpeciesList[speciesStr]
     for temp in plotTemps:
         CpCoeff = getCoeffs(temp, species.cpList.items())
         yplot.append(CpFunc(temp, *CpCoeff))
-    plt.plot(plotTemps, yplot, 'r-', label='Polynomial Fit')
+    #plt.plot(plotTemps, yplot, 'r-', label='Polynomial Fit')
 
     if CEA:
         plotTemps = range(300, 20000)
@@ -82,7 +82,7 @@ def plotCp(speciesStr, plotTemps, allSpeciesList, CEA, Capitelli):
             yplot.append(CpFunc(temp, *coeff[:7]))
         plt.plot(plotTemps, yplot, label = 'CEA (2002)')
     plt.grid()
-    plt.legend(loc = 1)
+    plt.legend(loc = 2)
 
 
 
@@ -108,14 +108,14 @@ def plotEnthalpy(speciesStr, plotTemps, allSpeciesList, CEA, Capitelli):
 
 
 def plotEntropy(speciesStr, plotTemps, allSpeciesList, CEA, Capitelli):
-    plt.plot(Capitelli[0], Capitelli[1], 'k.', label = 'Capitelli (2005)')
+    plt.plot(Capitelli[0], Capitelli[1], 'k.', label = 'Data Series')
     yplot = []
     species = allSpeciesList[speciesStr]
     for temp in plotTemps:
         CpCoeff = getCoeffs(temp, species.cpList.items())
         entropyCoeff = getCoeffs(temp, species.entropyList.items())
         yplot.append(entrFunc(temp, *CpCoeff, entropyCoeff))
-    plt.plot(plotTemps, yplot, label='Least Squares')
+    plt.plot(plotTemps, yplot, 'r-', label='This work')
 
     if CEA:
         yplot = []
