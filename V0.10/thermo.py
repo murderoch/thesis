@@ -1,7 +1,7 @@
 import util
 
 import matplotlib.pyplot as plt 
-from math import exp, pi, sqrt
+from math import exp, pi, sqrt, log
 from collections import defaultdict
 
 class Thermo:
@@ -29,12 +29,13 @@ class Thermo:
                     self.epsilon.append(level.energy * self.constants.Cm_1ToJoules)
                     self.J.append(level.J)
 
-    
+    '''
     def getCpRange(self):
         CpRange = self.calcCpRange(self.tempRange)
         return CpRange
+    '''
 
-    def calcSpecificHeat(self, T):
+    def calcThermo(self, T):
         # function which evaluates the specific heat (J / mol K))
         # T - temperature at which to evaluate the specific heat (K)
         # cutoff - index of maximum energy level   
@@ -46,7 +47,7 @@ class Thermo:
             Q = 0.
             for m in range(self.cutoffIdx):
                 Q += (2.*self.J[m]+1.) * exp(-self.epsilon[m] /(self.constants.kB * T))
-                print(Q)
+                #print(Q)
             return Q
         
         def Qdot():
@@ -66,9 +67,24 @@ class Thermo:
                         
             return Qdot2 / (self.constants.kB**2.0 * T**4.0) 
 
-        Cp = T**2*Qdot2()/Q() - (T*Qdot()/Q())**2 + 2.0*T*Qdot()/Q() + 5./2.
-        return Cp * self.constants.R
+        Q = Q()
+        Qdot = Qdot()
+        Qdot2 = Qdot2()
 
+        Cp = self.constants.R*(T**2*Qdot2/Q - (T*Qdot/Q)**2 + 2.0*T*Qdot/Q + 5./2.)
+
+        H = self.constants.R*(2.0*T*Qdot/Q + 5./2.*T)
+        S = self.constants.R*(log(Q) + T/Q * Qdot)
+
+        return Cp, H, S
+
+    def calcEnthalpy(self, T):
+
+        def Qdot():
+            Qdot = 0.
+            for m in range(self.cutoffIdx):
+                Qdot += (2.*self.J[m]+1.) * self.epsilon[m] \
+                        * exp(-self.epsilon[m] /(self.constants.kB*T))
 
     def calcCutoffIdx(self, T):
         
@@ -105,21 +121,24 @@ class Thermo:
         return cutoff
 
 
-    def calcCpRange(self, temps):
+    def calcThermoPropsRange(self, temps):
         # calculates a range of Cp values (J / mol K)) for a range of temperatures
         # returns a 2D array of temperatures and values
 
         # temps - array of input temperatures (K)
         self.CpArray = []
+        self.enthalpyArray = []
+        self.entropyArray = []
 
         for T in temps:
-            self.CpArray.append(self.calcSpecificHeat(T))
+            Cp, H, S = self.calcThermo(T)
+            self.CpArray.append(Cp)
+            self.enthalpyArray.append(H)
+            self.entropyArray.append(S)
             
-        return self.CpArray
+        return self.CpArray, self.enthalpyArray, self.entropyArray
 
-
-
-
+            
 if __name__ == '__main__':
     Capitelli2005oi = [[100, 200, 500, 700, 1000, 2000, 3000, 5000, 10000, 12000, 13000, 14000,
                     15000, 16000, 17000, 18000, 19000, 20000, 22000, 23000, 24000, 25000, 26000, 27000, 28000,

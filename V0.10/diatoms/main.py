@@ -21,7 +21,7 @@ class EnergyModes:
         QvibSum = 0
         QrotSum = 0
 
-        for n in range(0, 5):#len(self.species.spectralData['Te'])):
+        for n in range(0, len(self.species.spectralData['Te'])):
             Eelec, ge = self.Eelec(n)
             vlim = self.vibrational(n)
             #print('n=', n, 'vlim=', vlim)
@@ -40,12 +40,13 @@ class EnergyModes:
                     Erotvib = Evib + Erot
 
                     if (2*J + 1) * exp(-Erotvib*self.constants.Cm_1ToJoules / (self.constants.kB * T)) > 1:
-                        print(n, v, J)
-                        
+                        #print(n, v, J)
+                        pass
+
                     QrotSum += (2*J + 1) * exp(-Erotvib*self.constants.Cm_1ToJoules / (self.constants.kB * T))     
 
         QvibSum = 1.
-        print(QelecSum, QvibSum, QrotSum)
+        #print(QelecSum, QvibSum, QrotSum)
         Q = 1./sigma * QelecSum * QvibSum * QrotSum
         
         return Q
@@ -268,10 +269,10 @@ N2 = species.Species('N2')
 O2 = species.Species('O2')
 #print(N2.spectralData['Te'])
 
-energyModes = EnergyModes(O2)
+energyModes = EnergyModes(N2)
 #asdf = energyModes.vibrational(0)
 
-Q = energyModes.getEnergy(300)
+Q = energyModes.getEnergy(1000)
 
 print(Q)
 

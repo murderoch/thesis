@@ -576,6 +576,7 @@ def getTerms(L, noElectrons):
     # All possible values of ml = -l, -l+1, ..., l-1, l.
     ml = list(range(-L,L+1))
 
+    print(ml)
     # All possible values of 2ms = -1, 1. That is, ms = -1/2, +1/2. We work
     # with 2ms instead of ms so that we can handle integers only.
     ms2 = [-1,1]
@@ -640,6 +641,7 @@ def sortSpectra(levelList, outputFileName):
 
 
 if __name__ == '__main__':
+    '''
     O = species.Species('O')
 
     #allSpecies = [allSpecies]
@@ -647,9 +649,15 @@ if __name__ == '__main__':
     NIST = readNISTSpectra(O)
     theory = calculateExpectedStates(O, 5)
     calcEnergy = CalcEnergy(5, O, NIST, theory, O)
+    '''
 
+    print(getTerms(0, 2))
+
+    '''
     allLevels = calcEnergy.populateTheory()
 
     for config in allLevels:
         if config.term.checkLevelEnergies() != None:
             print(config.ID, config.core.term.getTermString())
+
+    '''

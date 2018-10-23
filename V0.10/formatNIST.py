@@ -56,7 +56,7 @@ def importFromFile(species):
                     j = float(j.split('/')[0])/float(j.split('/')[1])
                     j = str(j)
                 
-                #### Hack. ADD IN ENTRIES FOR LK COUPLING #######
+                #### Removes consideration for LK coupling #######
                 if '[' not in term:
                     if not row[0].isalpha(): 
                         if j.strip():

@@ -6,14 +6,16 @@ plotCells = 120
 species = ['N', 'O']
 rR = '2_5e-5'
 
-folderName = 'nonReac/'
+folderName = 'reac/'
 
-CapFileName = species[0] + '_' + species[1] + '-Cap.dat'
-CEAFileName = species[0] + '_' +  species[1] + '-CEA.dat'
+#CapFileName = species[0] + '_' + species[1] + '-Cap.dat'
+#CEAFileName = species[0] + '_' +  species[1] + '-CEA.dat'
 
 #capFiles = ['Cap-pR2_5e-5.dat', 'Cap-pR1_0e-4.dat', 'Cap-pR5_0e-6.dat']
 #CEAFiles = 
 
+CEAFileName = 'CEA.dat'
+CapFileName = 'Cap.dat'
 
 CEA = {}
 with open(folderName + CEAFileName, 'r') as CEAFile:
@@ -64,6 +66,7 @@ for keys, results in CEA.items():
     elif keys[1] == plotCells or plotCells == None:
         plt.plot(vel, results, 'r+')
 
+
 for keys, results in Cap.items():
     uIdx = keys[0].index('u')
     vel = float(keys[0][uIdx+1:])
@@ -89,9 +92,10 @@ Zandar = [[8.66, 9.7], [0.036, 0.0335]]
 plt.figure(1)
 plt.plot(CEAPoints[0], CEAPoints[1], 'ko', markersize=7, label='CEA Coefficients')
 plt.plot(CapPoints[0], CapPoints[1], 'r+', markersize=10, label='Updated Coefficients')
-#plt.plot(Lobb[0], Lobb[1], 'b^', markersize=7, label='Lobb Experimental Data')
-#plt.plot(Zandar[0], Zandar[1], 'bs', markersize=7, label='Zandar Experimental Data (Mean)')
+plt.plot(Lobb[0], Lobb[1], 'b^', markersize=7, label='Lobb Experimental Data')
+plt.plot(Zandar[0], Zandar[1], 'bs', markersize=7, label='Zandar Experimental Data (Mean)')
 plt.ylim([0.0, 0.13])
-plt.legend(loc = 4)
+plt.legend(loc = 1)
+plt.xlim([2.0, 11.0])
 plt.grid()
 plt.show()
