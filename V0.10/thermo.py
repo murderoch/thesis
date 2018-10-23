@@ -71,10 +71,13 @@ class Thermo:
         Qdot = Qdot()
         Qdot2 = Qdot2()
 
+        #print(Q, Qdot, Qdot2)
+
+
         Cp = self.constants.R*(T**2*Qdot2/Q - (T*Qdot/Q)**2 + 2.0*T*Qdot/Q + 5./2.)
 
         H = self.constants.R*(2.0*T*Qdot/Q + 5./2.*T)
-        S = self.constants.R*(log(Q) + T/Q * Qdot)
+        S = self.constants.R*(log(Q) + T/Q * Qdot)  
 
         return Cp, H, S
 

@@ -9,11 +9,11 @@ import matplotlib.pyplot as plt
 ############### SORT LEVELS ##################
 constants = util.Constants()
 
-nMax = 6
+nMax = 30
 
 speciesList = ['C', 'C+', 'N', 'N+', 'N++', 'O', 'O+', 'O++', 'F+', 'F++', 'F+++', 'Ne++', 'Ne+++']
-useList = ['O', 'O+', 'N', 'N+']
-useList = ['O']
+useList = ['O+', 'N', 'N+']
+#useList = ['N']
 
 for useName in useList:
     use = species.Species(useName)
@@ -28,11 +28,11 @@ for useName in useList:
     calcEnergy = spectra.CalcEnergy(nMax, use, NIST, theory, allSpecies)
     completeLevels, calculatedLevels = calcEnergy.populateTheory()
 
-    calculatedLevels = spectra.sortSpectra(calculatedLevels, 'output')
-    completeLevels = spectra.sortSpectra(completeLevels, None)
+    calculatedLevels = spectra.sortSpectra(calculatedLevels, None)
+    completeLevels = spectra.sortSpectra(completeLevels, 'output')
     NISTSorted = spectra.sortSpectra(NIST, None)
 
-    tempRange = range(200, 50000, 50)
+    tempRange = range(200, 50100, 100)
     ionizationLowering = 500
     #ionizationLowering = 'DebyeHuckel'
     numberDensity = 3E23

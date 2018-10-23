@@ -288,14 +288,15 @@ class CalcEnergy:
             if config.excitedState.subShell.n == configuration.excitedState.subShell.n:
                 matchedConfigs.append(config)
 
+
         if len(matchedConfigs) == 0:
             energy = self.hydrogenicApprox(configuration.term.n)
             configuration.setMethod('hydrogenic')
         else:
-            C, D = self.getAzQuantCoeff(coreEnergy, matchedConfigs)
+            A, B = self.getAzQuantCoeff(coreEnergy, matchedConfigs)
 
-            if C != None and D != None:
-                energy = I - IH*(z + 1.)**2. / (l + C + D/l**2.)**2.
+            if A != None and B != None:
+                energy = I - IH*(z + 1.)**2. / (l + A + B/(l**2.+1))**2.
             else:
                 energy = None      
         
@@ -306,7 +307,7 @@ class CalcEnergy:
         IH = self.constants.IH
         z = self.species.atomicNumber
         I = self.species.Io + coreEnergy
-        
+
         fitLList = []
         fitEnergyList = []
         for config in matchedCores:
@@ -317,35 +318,42 @@ class CalcEnergy:
             fitLList.append(config.excitedState.L)
             fitEnergyList.append(energy) 
 
-        #print(IH, z, I)
-        #print(fitLList, fitEnergyList)
-
-        def func(l, C):
-            energy = I - IH*(z + 1.)**2. / (l + C)**2.
-            return energy
-
-        initGuess = [1E-4]
-        p, e = optimize.curve_fit(func, fitLList, fitEnergyList, p0=initGuess) 
-        C = p[0]
-
-        print(C)
 
 
-        
+        if len(matchedCores) == 1:
+            energy = fitEnergyList[0]
+            l = fitEnergyList[0]
+
+            if energy > I:
+                return None, None
+            B = 0
+            A = sqrt(self.constants.IH * (z + 1.)**2. / (I - energy)) - l
+
+        else:
+            def func(l, A, B):
+                energy = I - IH*(z + 1.)**2./(l + A + B/(l**2.+1))**2.
+                return energy
+
+            p, e = optimize.curve_fit(func, fitLList, fitEnergyList) 
+            A = p[0]
+            B = p[1]   
+
+
+        '''     
         plotE = []
         for l in range(0,7):
-            plotE.append(func(l, C))
+            plotE.append(func(l, *p))
         
         plt.plot(range(0, 7), plotE, 'k--', label='Ritz-Rydberg Fit')
 
-        plt.plot(6, func(6, C), 'rx', label= 'Extrapolated Energy')
+        plt.plot(6, func(6, *p), 'rx', label= 'Extrapolated Energy')
 
         plt.plot(fitLList, fitEnergyList, 'bo', label='Observed Energy')
 
         plt.xlabel('Azimuthal Quantum Number $l$')
         plt.ylabel('Average Energy of Term $(cm^{-1})$')
         plt.title('Azimuthal Quantum Number Extrapolation of $O$\n$1s^2.2s^2.2p^3(^4S).6l^1$ series',y=1.04)
-        plt.subplots_adjust(top=0.8)
+        plt.subplots_adjust(top=0.8, left=0.15)
 
         plt.ticklabel_format(style='sci', axis='y', scilimits=(1,4))
         
@@ -353,8 +361,9 @@ class CalcEnergy:
         plt.legend(loc=4)
         #plt.xlim([1, 11])
         plt.show()
-        
-        return C, D
+        '''
+
+        return A, B
 
 
     def ritzRydberg(self, configuration, level, coreEnergy, matchedTerms):
@@ -403,35 +412,27 @@ class CalcEnergy:
         I = self.species.Io + coreEnergy
         #Ry = self.constants.Rydberg * (self.species.atomicNumber - self.speciesIon[0].noElectrons)**2.
 
-        if len(matchedTerms) == 1:
-            config = matchedTerms[0]
+        fitnList = []
+        fitEnergyList = []
+        for config in matchedTerms:
             n = config.term.n
             energyList = [x.energy*(2.*x.J+1) for x in config.term.levels if x.energy != None]
             JList = [(2.*x.J+1) for x in config.term.levels if x.energy != None]
             energy = sum(energyList)/sum(JList)
 
+            fitnList.append(n)
+            fitEnergyList.append(energy) 
+
+
+
+        if len(matchedTerms) == 1:
             if energy > I:
                 return None, None
-
             B = 0
             A = sqrt(self.constants.IH * (z + 1.)**2. / (I - energy)) - n
-            #A = sqrt(Ry / (I - energy)) - n
+
         
         elif len(matchedTerms) >= 2:
-            fitnList = []
-            fitEnergyList = []
-            for config in matchedTerms:
-                n = config.term.n
-
-                energyList = [x.energy*(2.*x.J+1) for x in config.term.levels if x.energy != None]
-                JList = [(2.*x.J+1) for x in config.term.levels if x.energy != None]
-                energy = sum(energyList)/sum(JList)
-
-                fitnList.append(n)
-                fitEnergyList.append(energy) 
-            if energy > I:
-                return None, None
-
             def func(n, A, B):
                 energy = I - IH*(z + 1.)**2. / (n + A + B/n**2.)**2.
                 return energy

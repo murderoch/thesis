@@ -10,7 +10,7 @@ class Constants:
         self.c = 2.99792458E8                           #speed of light (def)
         self.h = 6.626070040E-34                        #Planck's constant (Schlamminger et. al, 2014)
         self.atomicMassUnits = 1.660539040E-27          #atomic mass unit (NIST, 2018)
-        self.Cm_1ToJoules = self.c*self.h               #1 Joule as measured in cm^-1 (NIST, 2014)
+        self.Cm_1ToJoules = self.electronCharge * 1.23986E-4    #
         self.avagadro = 6.02214076E23                       #Mole (def)
 
         

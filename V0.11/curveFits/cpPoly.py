@@ -1,5 +1,7 @@
 import outputDat
 import plotting
+import CEAData
+
 
 import csv
 from scipy import optimize, integrate
@@ -35,7 +37,7 @@ entropyList = {species: [] for i,species in enumerate(speciesList)}
 
 R = 8.3144598
 
-speciesList = ['O']#, 'O+', 'N', 'N+']
+speciesList = ['O', 'O+', 'N', 'N+']
 
 for species in speciesList:
     fileName = species + '-output.csv'
@@ -47,11 +49,11 @@ for species in speciesList:
         for row in readData:
             temps[species].append(float(row[0]))
             CpList[species].append(float(row[1]) / R)
-            enthalpyList[species].append( (float(row[2]) + heatofFormation) / (R * float(row[0])))
+            enthalpyList[species].append( (float(row[2])/1000. + heatofFormation) / (R * float(row[0])))
             entropyList[species].append(float(row[3]) / R)
 
 
-regions = {'O':   [0, 6000, 14000, 22000, 50000],   #good
+regions = {'O':   [0, 6000, 14000, 25000, 50000],   #good
            'O+':  [0, 14000, 32000, 50000],         #good
            'N':   [0, 6000, 12000, 22000, 50000],   #good #bad ETNR
            'N+':  [0, 6000, 24000, 38000, 50000],   #good #bad ENTR
@@ -122,8 +124,8 @@ for species in speciesList:
         lenTemps = len(temps[species][:tempsMaxIdx])
 
         if i == 0:
-            boundaryTempEnth = temps[species][int(lenTemps/4)]
-            boundaryEnth = enthalpySpecies[int(lenTemps/4)]
+            boundaryTempEnth = temps[species][int(lenTemps/2)]
+            boundaryEnth = enthalpySpecies[int(lenTemps/2)]
             Ep, Ee = optimize.curve_fit(makeEnthalpy(*p), boundaryTempEnth, boundaryEnth)
             prevEnth = enthFunc(tempsMax, *p, *Ep)
         else:
@@ -153,21 +155,19 @@ for species in speciesList:
 
 outputDat.outputDat(allSpeciesList)
 
-#CEA = CEAData.getCEA()
-CEA = None
+CEA = CEAData.getCEA()
+#CEA = None
 
 
-plotSpecies = 'O'
+plotSpecies = 'N+'
 if plotSpecies != '' and plotSpecies != None:
     speciesList = [plotSpecies]
 
 
 for species in speciesList:
-
-
     plt.figure()
     plt.title(species + ' Cp')
-    plt.title('Comparison of Cp Polynomial Fits for Atomic Oxygen')
+    plt.title('Cp Polynomial Fit for ' + plotSpecies)
     Capitelli = [temps[species], CpList[species]]
     plotTemps = range(200, 50000, 100)
     plotting.plotCp(species, plotTemps, allSpeciesList, CEA, Capitelli)
@@ -178,23 +178,28 @@ for species in speciesList:
     
     plt.figure()
     plt.title(species + ' Enthalpy')
-    plt.title('Comparison of Enthalpy Polynomial Fits for Atomic Oxygen')
+    plt.title('Enthalpy Polynomial Fit for ' + plotSpecies)
+    plt.title('Comparison of Enthalpy fits for N+')
     Capitelli = [temps[species], enthalpyList[species]]
     plotTemps = range(200, 50000, 100)
     plotting.plotEnthalpy(species, plotTemps, allSpeciesList, CEA, Capitelli)
     plt.xlabel('Temperature (K)')
     plt.ylabel('H/RT')
+    plt.ylim([0,0.03])
+    plt.xlim([0, 50000])
+    plt.legend(loc=1)
+    plt.show()
 
     plt.figure()
     plt.title(species + ' Entropy')
-    plt.title('Comparison of Entropy Polynomial Fits for Atomic Oxygen')
+    plt.title('Entropy Polynomial Fit for ' + plotSpecies)
     Capitelli = [temps[species], entropyList[species]]
     plotTemps = range(200, 50000, 100)
     plotting.plotEntropy(species, plotTemps, allSpeciesList, CEA, Capitelli)
     plt.xlabel('Temperature (K)')
     plt.ylabel('S/R')
     
-    plt.show()
+
     
 
 

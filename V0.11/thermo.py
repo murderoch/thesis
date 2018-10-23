@@ -43,54 +43,36 @@ class Thermo:
         self.cutoffIdx = self.calcCutoffIdx(T)
         #print(self.cutoffIdx)
 
-        def QFunc(T):
+        def Q(T):
             Q = 0.
             for m in range(self.cutoffIdx):
                 Q += (2.*self.J[m]+1.) * exp(-self.epsilon[m] /(self.constants.kB * T))
+                #print(Q)
             return Q
         
-
-        def QdotFunc(T, Qtr=None, Q=None):
+        def Qdot(tuple):
             Qdot = 0.
-            if Qtr == None:
-                for m in range(self.cutoffIdx):
-                    Qdot += (2.*self.J[m]+1.) * self.epsilon[m] \
-                            * exp(-self.epsilon[m] /(self.constants.kB * T))
-                
-                return 1.0/(self.constants.kB * T**2.0) * Qdot
-                '''
-                else:
-                    for m in range(self.cutoffIdx):
-                        Qdot += Qtr * (2.*self.J[m]+1.) * self.epsilon[m] \
-                                * 1.0/(self.constants.kB * T**2.0) \
-                                * exp(-self.epsilon[m] /(self.constants.kB * T)) \
-                                + 3./2. * Q * (2*pi*self.species.mass*self.constants.kB\
-                                /  (self.constants.h**2.))**(3./2.) * T**(1./2.)
-                    return Qdot
-                '''
-            else:
-                QintDot = QdotFunc(T)
-                Qdot = QintDot * Qtr + 3./2. * Q * (2*pi*self.species.mass*self.constants.kB \
-                       /(self.constants.h**2.))**(3./2.) * T**(1./2.)
-                return Qdot
+            for m in range(self.cutoffIdx):
+                Qdot += (2.*self.J[m]+1.) * self.epsilon[m] \
+                        * exp(-self.epsilon[m] /(self.constants.kB*T))
 
-        def Qdot2Func(T):
+            return 1.0/(self.constants.kB * T**2.0) * Qdot
+
+        def Qdot2(T):
             Qdot2 = 0.
             for m in range(self.cutoffIdx):
                 Qdot2 += (2.*self.J[m]+1.) * self.epsilon[m] \
-                        * (self.epsilon[m] - 2.*self.constants.kB * T) \
-                        * exp(-self.epsilon[m] / (self.constants.kB * T))
-
+                        * (self.epsilon[m] - 2.*self.constants.kB*T) \
+                        * exp(-self.epsilon[m] / (self.constants.kB*T))
+                        
             return Qdot2 / (self.constants.kB**2.0 * T**4.0) 
 
-        Q = QFunc(T)
-        Qdot = QdotFunc(T)
-        Qdot2 = Qdot2Func(T)
+        Q = Q(T)
+        Qdot = Qdot(T)
+        Qdot2 = Qdot2(T)
 
         Cp = self.constants.R*(T**2*Qdot2/Q - (T*Qdot/Q)**2 + 2.0*T*Qdot/Q + 5./2.)
-
         H = self.constants.R*(T**2.*Qdot/Q + 5./2.*T)
-
 
         T_1 = 1.0
         P_0 = 100.0E3
@@ -99,8 +81,6 @@ class Thermo:
              / (self.constants.h**2.))**(3./2.) * (self.constants.kB*T)/P_0)
 
         S = self.constants.R*(log(Q) + 3./2. * log(self.species.molarMass) + 5./2.*log(T) + sc - 5./2.)
-        
-        #print(T, Cp, H, S)
 
         return Cp, H, S
 
